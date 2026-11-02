@@ -1,0 +1,18 @@
+{
+  "image_id": "capture_001.jpg",
+  "vehicle_type": "car",
+  "vehicle_confidence": 0.91,
+  "vehicle_bbox": [42, 31, 598, 447],
+  "license_plate": "กข1234",
+  "ocr_confidence": 0.82,
+  "plate_bbox": [231, 326, 407, 378],
+  "ocr_engine": "gemini",
+  "status": "success",
+  "needs_review": false,
+  "processing_ms": {
+    "vehicle": 138.442,
+    "plate_and_ocr": 267.114,
+    "total": 405.691
+  },
+  "errors": []
+}

@@ -1,0 +1,30 @@
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+data/samples/*
+!data/samples/.gitkeep
+reports/results.csv
+reports/day1_results.md
+models/
+
+# Downloaded/exported AI model weights
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Local editor/OS artifacts
+.vscode/*.log
+.DS_Store
+Thumbs.db
+
