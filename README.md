@@ -6,7 +6,7 @@ Intelligence Parking Lot is a team project that combines parking sensors, licens
 
 This repository covers the **ESP32-CAM, the local camera and recognition service, and the planned cloud storage for camera and parking-session records**. The local service accepts a JPEG or takes a still from the ESP32-CAM, identifies the vehicle, reads the plate, and returns structured results for parking decisions. The repository also includes a CLI, example responses, tests, and an evaluation script.
 
-The team dashboard is ready for sensor data. Our teammate owns the **sensor cloud storage** implementation. The camera record can feed the dashboard so it can display the photo, vehicle type, plate, parking status, and stay duration.
+The team dashboard is ready for sensor data. Our teammate owns the **sensor cloud storage** implementation. The camera record can feed the dashboard so it can display the photo, vehicle type, plate, parking status, and entry and exit times.
 
 ## Project status
 
@@ -47,17 +47,18 @@ Store one record per parking visit under a stable session ID. The record contain
 | `vehicle_type` | The validated vehicle type. |
 | `license_plate` | The validated OCR plate text. |
 | `status` | `still_in` after entry and `left` after a matched exit. |
-| `stay_duration_seconds` | The calculated stay in seconds, available after a matched exit. This is `null` while the vehicle is still inside. |
+| `entered_at` | The date and time the vehicle entered the parking lot. |
+| `exited_at` | The date and time the vehicle left the parking lot. This is `null` while the vehicle is still inside. |
 
-The laptop keeps the entry and exit times locally and computes the duration as exit time minus entry time. On entry it queues a new `still_in` record. On exit it updates that same session to `left` with the calculated duration. Use the same session ID for upload retries and upload changes in order so a delayed entry update cannot overwrite a completed visit.
+On entry, the laptop queues a new `still_in` record with `entered_at` set and `exited_at` empty. On a matched exit, it updates that same session to `left` and records `exited_at`. Store both timestamps in UTC and display them in the parking lot's local time. Use the same session ID for upload retries and upload changes in order so a delayed entry update cannot overwrite a completed visit.
 
 ## What to do next
 
 1. **Connect the arrival trigger.** Verify the UNO-to-gateway link and trigger one capture per arrival. Use the existing simulated alert to test the camera flow before connecting hardware.
 2. **Complete recognition for parking.** Add motorcycle classification and evaluate both vehicle types and Thai plate OCR with real ESP32-CAM frames. Route unclear readings to operator review.
 3. **Connect the gate decision.** Reserve a matching entry bay or match the exit plate to an active session before issuing `OPEN`. Record entry and exit times locally.
-4. **Implement camera cloud storage.** Add background photo uploads and session updates for the five fields above. Connect the dashboard to the camera records and keep the sensor storage work with our teammate.
-5. **Test entry and exit end to end.** Verify that the status changes from `still_in` to `left`, the stay duration is correct, and failed archive uploads can retry without delaying gate control. Also test a full matching bay, unreadable plates, and duplicate arrival messages.
+4. **Implement camera cloud storage.** Add background photo uploads and session updates for the camera record fields above. Connect the dashboard to the camera records and keep the sensor storage work with our teammate.
+5. **Test entry and exit end to end.** Verify that entry and exit times appear on the same session, the status changes from `still_in` to `left`, and failed archive uploads can retry without delaying gate control. Also test a full matching bay, unreadable plates, and duplicate arrival messages.
 
 ## Run the camera and AI prototype
 
