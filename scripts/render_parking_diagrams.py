@@ -53,8 +53,8 @@ def label(x, y, *lines, dashed=False):
     text(x, y, lines, "pending-label" if dashed else "label", "middle", 22)
 
 
-text(45, 64, ["Intelligence Parking Lot · Entire system"], "title")
-text(46, 102, ["Two camera feeds, the parking ledger, live sensor telemetry, and both dashboards"], "subtitle")
+text(45, 64, ["Intelligence Parking Lot · One-laptop setup"], "title")
+text(46, 102, ["Recommended demo: one laptop handles both camera feeds, sensor telemetry and dashboards"], "subtitle")
 arrow([(1630, 102), (1685, 102)])
 text(1702, 108, ["Implemented"], "small")
 arrow([(1851, 102), (1906, 102)], dashed=True)
@@ -78,13 +78,17 @@ box(1020, 203, 470, 155, "Supabase · Private photo bucket", [
     "PostgreSQL stores the linked media IDs.",
 ], "#e6f5ee")
 box(1610, 203, 530, 155, "InfluxDB Cloud · Sensor archive", [
-    "Optional sensor cloud sync on the sensor PC",
+    "Optional sensor cloud sync from the laptop",
     "Archives raw UNO and ESP32 telemetry.",
     "Returns history on demand to Flask.",
 ], "#e6f5ee")
 
-panel(35, 488, 1095, 310, "#e7f0ff")
-text(58, 528, ["CAMERA MAC  ·  FASTAPI  :8000"], "section")
+panel(20, 462, 2160, 638, "#f9fbfd", "#839db7")
+text(47, 493, ["WINDOWS LAPTOP  ·  LOCAL MIDDLE SERVER"], "section")
+text(1550, 493, ["Run each app in its own Python environment"], "small", "end")
+
+panel(35, 508, 1095, 290, "#e7f0ff")
+text(58, 545, ["PARKING AND CAMERA SERVICE  ·  FASTAPI  :8000"], "section")
 box(60, 563, 295, 165, "1. Camera capture", [
     "Requests a still from either role.",
     "Corrects image orientation.",
@@ -104,10 +108,10 @@ arrow([(355, 644), (389, 644)])
 arrow([(727, 644), (761, 644)])
 text(60, 770, ["Local development can use SQLite and disk photos. The shared deployment uses Supabase."], "small")
 
-panel(1210, 488, 955, 310, "#fff1df")
-text(1233, 528, ["SENSOR PC  ·  WINDOWS SERVICES"], "section")
+panel(1210, 508, 955, 290, "#fff1df")
+text(1233, 545, ["SENSOR DASHBOARD SERVICES"], "section")
 box(1235, 563, 260, 165, "Mosquitto :1883", [
-    "Receives MQTT JSON.",
+    "Listens on the laptop's LAN IP.",
     "Authenticates gateway clients.",
     "Delivers messages to Flask.",
 ], cls="small")
@@ -125,42 +129,43 @@ arrow([(1495, 644), (1529, 644)])
 arrow([(1810, 644), (1844, 644)], both=True)
 text(1235, 770, ["When enabled, the cloud uploader queues raw telemetry and uses HTTPS with server-side credentials."], "small")
 
-arrow([(540, 488), (540, 442), (265, 442), (265, 359)], both=True)
+arrow([(615, 508), (615, 442), (265, 442), (265, 359)], both=True)
 label(395, 431, "HTTPS · JPEG ⇄ class + plate box")
-arrow([(882, 488), (882, 441), (745, 441), (745, 359)], both=True)
+arrow([(882, 508), (882, 441), (745, 441), (745, 359)], both=True)
 label(810, 424, "HTTPS · records + results")
-arrow([(1035, 488), (1035, 442), (1215, 442), (1215, 359)], both=True)
+arrow([(1035, 508), (1035, 442), (1215, 442), (1215, 359)], both=True)
 label(1135, 425, "HTTPS · upload / fetch JPEGs")
-arrow([(1875, 488), (1875, 359)], both=True)
+arrow([(1875, 508), (1875, 359)], both=True)
 label(1875, 434, "HTTPS · optional telemetry writes / history queries")
 
 box(135, 920, 440, 155, "Parking dashboard · Browser", [
-    "Sends capture/upload, crop and commit.",
+    "Open 127.0.0.1:8000 on this laptop.",
     "Shows live images, plate, visit and photos.",
     "Runs the four-second gate simulator.",
 ], "#e7f0ff")
 box(800, 909, 650, 180, "Prepared · Sensor dashboard bridge", [
-    "Reads Flask GET /api/latest using Basic Auth.",
+    "Reads GET /api/latest on 127.0.0.1:5000 with Basic Auth.",
     "Maps A1 to a verified bay ID and skips stale readings.",
-    "POST /parking/sensors → occupancy, UTC time, integration key.",
+    "POST /parking/sensors on 127.0.0.1:8000 with the integration key.",
     "Dashboard backend can request parking counts, visits and photos.",
 ], "#fff1df", dashed=True)
 box(1640, 920, 485, 155, "Sensor dashboard · Browser", [
-    "Requests current readings and history from Flask.",
+    "Open 127.0.0.1:5000 on this laptop.",
     "Shows A1 occupancy and environmental charts.",
     "Can select local or configured cloud history.",
 ], "#fff1df")
 arrow([(350, 920), (350, 798)], both=True)
-label(350, 861, "Local HTTP", "Preview / capture ⇄ decision")
+label(350, 861, "Loopback HTTP · port 8000", "Preview / capture ⇄ decision")
 arrow([(1875, 920), (1875, 837), (1730, 837), (1730, 799)], both=True)
-label(1875, 855, "Local HTTP · live state and history")
+label(1875, 855, "Loopback HTTP · live state and history")
 arrow([(1180, 909), (1180, 823), (1620, 823), (1620, 799)], both=True, dashed=True)
 label(1374, 848, "GET /api/latest ⇄ sensor snapshot", dashed=True)
 arrow([(850, 909), (850, 799)], dashed=True)
 label(850, 867, "POST fresh mapped bay readings", dashed=True)
 
 panel(35, 1155, 2130, 453, "#e9eff5")
-text(155, 1195, ["FIELD HARDWARE  ·  LOCAL WI-FI AND WIRES"], "section")
+text(155, 1195, ["FIELD HARDWARE"], "section")
+text(1170, 1195, ["The laptop and ESP32 boards share reachable Wi-Fi."], "small")
 box(62, 1258, 345, 145, "Entrance ESP32-CAM", [
     "OV2640 supplies a JPEG still.",
     "HTTP /capture over local Wi-Fi",
@@ -197,7 +202,7 @@ box(1760, 1460, 377, 115, "Environmental sensors", [
 ], "#fff1df", cls="small")
 arrow([(97, 798), (97, 1257)], both=True)
 arrow([(125, 798), (125, 1109), (607, 1109), (607, 1257)], both=True)
-label(345, 1102, "Mac sends GET /capture · Cameras return JPEG")
+label(345, 1128, "Laptop sends GET /capture · Cameras return JPEG")
 arrow([(1443, 1330), (1469, 1330)], both=True)
 arrow([(1725, 1330), (1759, 1330)])
 text(1470, 1441, ["UNO D11 TX → level divider → GPIO25 RX · common GND"], "small")

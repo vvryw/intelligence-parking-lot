@@ -14,10 +14,10 @@
   .label{fill:#34546e}.pending-label{fill:#804511}
 </style>
 <text x="45" y="64" class="title" text-anchor="start">
-<tspan x="45" dy="0">Intelligence Parking Lot · Entire system</tspan>
+<tspan x="45" dy="0">Intelligence Parking Lot · One-laptop setup</tspan>
 </text>
 <text x="46" y="102" class="subtitle" text-anchor="start">
-<tspan x="46" dy="0">Two camera feeds, the parking ledger, live sensor telemetry, and both dashboards</tspan>
+<tspan x="46" dy="0">Recommended demo: one laptop handles both camera feeds, sensor telemetry and dashboards</tspan>
 </text>
 <polyline points="1630,102 1685,102" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
 <text x="1702" y="108" class="small" text-anchor="start">
@@ -63,13 +63,20 @@
 <tspan x="1631" dy="0">InfluxDB Cloud · Sensor archive</tspan>
 </text>
 <text x="1631" y="269" class="body" text-anchor="start">
-<tspan x="1631" dy="0">Optional sensor cloud sync on the sensor PC</tspan>
+<tspan x="1631" dy="0">Optional sensor cloud sync from the laptop</tspan>
 <tspan x="1631" dy="25">Archives raw UNO and ESP32 telemetry.</tspan>
 <tspan x="1631" dy="25">Returns history on demand to Flask.</tspan>
 </text>
-<rect x="35" y="488" width="1095" height="310" rx="16" fill="#e7f0ff" stroke="#bacbdc" stroke-width="1.5"/>
-<text x="58" y="528" class="section" text-anchor="start">
-<tspan x="58" dy="0">CAMERA MAC  ·  FASTAPI  :8000</tspan>
+<rect x="20" y="462" width="2160" height="638" rx="16" fill="#f9fbfd" stroke="#839db7" stroke-width="1.5"/>
+<text x="47" y="493" class="section" text-anchor="start">
+<tspan x="47" dy="0">WINDOWS LAPTOP  ·  LOCAL MIDDLE SERVER</tspan>
+</text>
+<text x="1550" y="493" class="small" text-anchor="end">
+<tspan x="1550" dy="0">Run each app in its own Python environment</tspan>
+</text>
+<rect x="35" y="508" width="1095" height="290" rx="16" fill="#e7f0ff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="58" y="545" class="section" text-anchor="start">
+<tspan x="58" dy="0">PARKING AND CAMERA SERVICE  ·  FASTAPI  :8000</tspan>
 </text>
 <rect x="60" y="563" width="295" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
 <text x="81" y="597" class="head" text-anchor="start">
@@ -103,16 +110,16 @@
 <text x="60" y="770" class="small" text-anchor="start">
 <tspan x="60" dy="0">Local development can use SQLite and disk photos. The shared deployment uses Supabase.</tspan>
 </text>
-<rect x="1210" y="488" width="955" height="310" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
-<text x="1233" y="528" class="section" text-anchor="start">
-<tspan x="1233" dy="0">SENSOR PC  ·  WINDOWS SERVICES</tspan>
+<rect x="1210" y="508" width="955" height="290" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1233" y="545" class="section" text-anchor="start">
+<tspan x="1233" dy="0">SENSOR DASHBOARD SERVICES</tspan>
 </text>
 <rect x="1235" y="563" width="260" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
 <text x="1256" y="597" class="head" text-anchor="start">
 <tspan x="1256" dy="0">Mosquitto :1883</tspan>
 </text>
 <text x="1256" y="629" class="small" text-anchor="start">
-<tspan x="1256" dy="0">Receives MQTT JSON.</tspan>
+<tspan x="1256" dy="0">Listens on the laptop&#x27;s LAN IP.</tspan>
 <tspan x="1256" dy="25">Authenticates gateway clients.</tspan>
 <tspan x="1256" dy="25">Delivers messages to Flask.</tspan>
 </text>
@@ -139,19 +146,19 @@
 <text x="1235" y="770" class="small" text-anchor="start">
 <tspan x="1235" dy="0">When enabled, the cloud uploader queues raw telemetry and uses HTTPS with server-side credentials.</tspan>
 </text>
-<polyline points="540,488 540,442 265,442 265,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<polyline points="615,508 615,442 265,442 265,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="395" y="431" class="label" text-anchor="middle">
 <tspan x="395" dy="0">HTTPS · JPEG ⇄ class + plate box</tspan>
 </text>
-<polyline points="882,488 882,441 745,441 745,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<polyline points="882,508 882,441 745,441 745,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="810" y="424" class="label" text-anchor="middle">
 <tspan x="810" dy="0">HTTPS · records + results</tspan>
 </text>
-<polyline points="1035,488 1035,442 1215,442 1215,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<polyline points="1035,508 1035,442 1215,442 1215,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="1135" y="425" class="label" text-anchor="middle">
 <tspan x="1135" dy="0">HTTPS · upload / fetch JPEGs</tspan>
 </text>
-<polyline points="1875,488 1875,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<polyline points="1875,508 1875,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="1875" y="434" class="label" text-anchor="middle">
 <tspan x="1875" dy="0">HTTPS · optional telemetry writes / history queries</tspan>
 </text>
@@ -160,7 +167,7 @@
 <tspan x="156" dy="0">Parking dashboard · Browser</tspan>
 </text>
 <text x="156" y="986" class="body" text-anchor="start">
-<tspan x="156" dy="0">Sends capture/upload, crop and commit.</tspan>
+<tspan x="156" dy="0">Open 127.0.0.1:8000 on this laptop.</tspan>
 <tspan x="156" dy="25">Shows live images, plate, visit and photos.</tspan>
 <tspan x="156" dy="25">Runs the four-second gate simulator.</tspan>
 </text>
@@ -169,9 +176,9 @@
 <tspan x="821" dy="0">Prepared · Sensor dashboard bridge</tspan>
 </text>
 <text x="821" y="975" class="body" text-anchor="start">
-<tspan x="821" dy="0">Reads Flask GET /api/latest using Basic Auth.</tspan>
+<tspan x="821" dy="0">Reads GET /api/latest on 127.0.0.1:5000 with Basic Auth.</tspan>
 <tspan x="821" dy="25">Maps A1 to a verified bay ID and skips stale readings.</tspan>
-<tspan x="821" dy="25">POST /parking/sensors → occupancy, UTC time, integration key.</tspan>
+<tspan x="821" dy="25">POST /parking/sensors on 127.0.0.1:8000 with the integration key.</tspan>
 <tspan x="821" dy="25">Dashboard backend can request parking counts, visits and photos.</tspan>
 </text>
 <rect x="1640" y="920" width="485" height="155" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
@@ -179,18 +186,18 @@
 <tspan x="1661" dy="0">Sensor dashboard · Browser</tspan>
 </text>
 <text x="1661" y="986" class="body" text-anchor="start">
-<tspan x="1661" dy="0">Requests current readings and history from Flask.</tspan>
+<tspan x="1661" dy="0">Open 127.0.0.1:5000 on this laptop.</tspan>
 <tspan x="1661" dy="25">Shows A1 occupancy and environmental charts.</tspan>
 <tspan x="1661" dy="25">Can select local or configured cloud history.</tspan>
 </text>
 <polyline points="350,920 350,798" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="350" y="861" class="label" text-anchor="middle">
-<tspan x="350" dy="0">Local HTTP</tspan>
+<tspan x="350" dy="0">Loopback HTTP · port 8000</tspan>
 <tspan x="350" dy="22">Preview / capture ⇄ decision</tspan>
 </text>
 <polyline points="1875,920 1875,837 1730,837 1730,799" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="1875" y="855" class="label" text-anchor="middle">
-<tspan x="1875" dy="0">Local HTTP · live state and history</tspan>
+<tspan x="1875" dy="0">Loopback HTTP · live state and history</tspan>
 </text>
 <polyline points="1180,909 1180,823 1620,823 1620,799" fill="none" stroke="#95531b" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#pending)" marker-start="url(#pending)" stroke-dasharray="9 7"/>
 <text x="1374" y="848" class="pending-label" text-anchor="middle">
@@ -202,7 +209,10 @@
 </text>
 <rect x="35" y="1155" width="2130" height="453" rx="16" fill="#e9eff5" stroke="#bacbdc" stroke-width="1.5"/>
 <text x="155" y="1195" class="section" text-anchor="start">
-<tspan x="155" dy="0">FIELD HARDWARE  ·  LOCAL WI-FI AND WIRES</tspan>
+<tspan x="155" dy="0">FIELD HARDWARE</tspan>
+</text>
+<text x="1170" y="1195" class="small" text-anchor="start">
+<tspan x="1170" dy="0">The laptop and ESP32 boards share reachable Wi-Fi.</tspan>
 </text>
 <rect x="62" y="1258" width="345" height="145" rx="16" fill="#e7f0ff" stroke="#bacbdc" stroke-width="1.5"/>
 <text x="83" y="1292" class="head" text-anchor="start">
@@ -268,8 +278,8 @@
 </text>
 <polyline points="97,798 97,1257" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <polyline points="125,798 125,1109 607,1109 607,1257" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
-<text x="345" y="1102" class="label" text-anchor="middle">
-<tspan x="345" dy="0">Mac sends GET /capture · Cameras return JPEG</tspan>
+<text x="345" y="1128" class="label" text-anchor="middle">
+<tspan x="345" dy="0">Laptop sends GET /capture · Cameras return JPEG</tspan>
 </text>
 <polyline points="1443,1330 1469,1330" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <polyline points="1725,1330 1759,1330" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>

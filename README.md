@@ -2,11 +2,26 @@
 
 Intelligence Parking Lot combines two ESP32-CAM cameras, Gemini vehicle classification, local PaddleOCR, and a five-space parking ledger. The web dashboard previews both cameras, reads plates, checks available spaces by vehicle type, and records simulated gate decisions. Run with SQLite and local photos for development or use Supabase for shared records and private photo storage.
 
-![Camera, sensor dashboard, parking API, and cloud data flow](docs/parking-system-flow.png)
+![One-laptop architecture with both cameras, both dashboards, sensors, and cloud services](docs/parking-system-flow.png)
+
+## Recommended demo setup
+
+Use the Windows laptop that already runs the sensor dashboard as the local server for both projects. Keep each project in its own Python environment. Both dashboards and the sensor bridge can use loopback addresses, so communication between the apps stays on the laptop. Keep the laptop awake during the demo because it serves both dashboards.
+
+| Service | Address | Connection |
+|---|---|---|
+| Parking dashboard and camera previews | `http://127.0.0.1:8000` | The browser connects to FastAPI. FastAPI requests a JPEG from each ESP32-CAM over Wi-Fi. |
+| Sensor dashboard | `http://127.0.0.1:5000` | The browser connects to Flask for live readings and history. |
+| Mosquitto | Laptop Wi-Fi IP, TCP `1883` | The ESP32 sensor gateway publishes telemetry over Wi-Fi. |
+| InfluxDB OSS | `http://127.0.0.1:8086` | Flask stores and reads local sensor history. |
+
+1. Start the companion sensor services on the Windows laptop with `scripts/start-native.ps1` from its project directory. Keep the laptop, both cameras and the sensor gateway on a reachable Wi-Fi network. Use the laptop's Wi-Fi IP for the gateway's broker address. [Companion sensor setup](https://github.com/ananyaknr/iot-parking-dashboard#start-and-stop)
+2. Set up the parking project on the same laptop using the steps below. Configure both capture URLs and start FastAPI on port `8000`. The laptop uses internet access for Gemini classification and, when configured, the Supabase ledger and photo archive. The sensor dashboard can also use its optional InfluxDB Cloud archive.
+3. Open the two dashboards on the laptop. Once the physical sensor-to-bay mapping is confirmed and Supabase is configured, the optional bridge can read Flask on port `5000` and forward occupancy to FastAPI on port `8000`. [Sensor bridge setup](docs/sensor-dashboard-integration.md#adapter-for-the-existing-sensor-project)
 
 ## How it works
 
-1. **Entrance.** Select Entrance and click **Simulate sensor alert** to take a fresh JPEG over Wi-Fi. Gemini receives the still image and returns a vehicle type and proposed plate box. The Mac crops and enhances the plate, then reads Thai or English text locally with PaddleOCR.
+1. **Entrance.** Select Entrance and click **Simulate sensor alert** to take a fresh JPEG over Wi-Fi. Gemini receives the still image and returns a vehicle type and proposed plate box. The parking server crops and enhances the plate, then reads Thai or English text locally with PaddleOCR.
 2. **Review.** Check the vehicle type and plate. If the box is off, draw a new one around the registration characters and click **Read selected plate**. A recrop of the same entrance photo reuses its Gemini result. You can also use **Or open a test photo** and draw the plate box to test without a camera.
 3. **Admission.** Click **Check gate & register entry / exit**. The backend uses the saved observation to check capacity and allocate a matching bay. The web gate opens for four seconds after a new approved decision.
 4. **Exit.** Select Exit and repeat the capture and review. Exit runs PaddleOCR locally. When the plate matches an active visit, the backend closes that visit and releases its assigned bay. The dashboard displays availability, entry and exit times in Bangkok time, decisions, and archived photo links.
