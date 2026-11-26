@@ -18,6 +18,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 DEFAULT_GEMINI_MODEL = "gemini-4-hydrogen"
 FALLBACK_GEMINI_MODEL = "gemini-3.1-flash-lite"
 ENTRANCE_ATTEMPT_TIMEOUT_SECONDS = 8.0
+GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions"
 THINKING_LEVELS = {
     "gemini-4-hydrogen": "low",
     "gemini-3.8-flash": "low",
@@ -34,7 +35,7 @@ class GeminiServiceError(RuntimeError):
 
 
 class GeminiJSONService:
-    """Small, injectable wrapper around the official Google Gen AI Python SDK."""
+    """Send image and structured JSON requests to the Gemini Interactions API."""
 
     def __init__(
         self,
@@ -50,13 +51,12 @@ class GeminiJSONService:
             else configured_model.removeprefix("models/")
         )
         configured_timeout = os.getenv("GEMINI_TIMEOUT_SECONDS", "90")
-        # Earlier project revisions documented 30 seconds, which is too short
-        # once the SDK's transient retry/backoff time is included.
+        # Preserve the prior timeout for environments using the old 30-second default.
         self.timeout_seconds = (
             90.0 if configured_timeout.strip() == "30" else max(1.0, float(configured_timeout))
         )
         self._generate = generate
-        self._client: Any = None
+        self._client = httpx.Client()
 
     def analyze(
         self, image: np.ndarray, prompt: str, response_schema: dict[str, Any]
@@ -72,21 +72,7 @@ class GeminiJSONService:
         api_key = os.getenv("GEMINI_API_KEY", "").strip()
         if not api_key:
             raise GeminiServiceError("GEMINI_API_KEY is not configured")
-        try:
-            from google import genai
-            from google.genai import types
-        except ImportError as exc:
-            raise GeminiServiceError("google-genai is not installed; install requirements.txt") from exc
         use_fallback = self.model == DEFAULT_GEMINI_MODEL
-        if self._client is None:
-            http_options = types.HttpOptions(timeout=round(self.timeout_seconds * 1000))
-            if use_fallback:
-                # Try the fallback directly instead of waiting for Google's Retry-After.
-                http_options.retry_options = types.HttpRetryOptions(attempts=0)
-            self._client = genai.Client(
-                api_key=api_key,
-                http_options=http_options,
-            )
         encoded, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not encoded:
             raise GeminiServiceError("Could not encode image for Gemini")
@@ -106,41 +92,55 @@ class GeminiJSONService:
                 "schema": response_schema,
             },
         }
-        if use_fallback:
-            request["timeout"] = min(self.timeout_seconds, ENTRANCE_ATTEMPT_TIMEOUT_SECONDS)
+        timeout = (
+            min(self.timeout_seconds, ENTRANCE_ATTEMPT_TIMEOUT_SECONDS)
+            if use_fallback else self.timeout_seconds
+        )
 
         model = self.model
         try:
             try:
-                payload = self._request_json(model, request)
-            except Exception as exc:
-                status = getattr(exc, "status_code", getattr(exc, "code", None))
-                timed_out = isinstance(exc, httpx.TimeoutException) or isinstance(
-                    exc.__cause__, httpx.TimeoutException
-                )
-                temporary_error = timed_out or status in (
+                payload = self._request_json(model, request, api_key, timeout)
+            except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
+                status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
+                temporary_error = status is None or status in (
                     408, 429, 500, 502, 503, 504,
                 )
                 if not use_fallback or not temporary_error:
                     raise
                 model = FALLBACK_GEMINI_MODEL
-                payload = self._request_json(model, request)
+                payload = self._request_json(model, request, api_key, timeout)
         except GeminiServiceError:
             raise
         except Exception as exc:
             raise GeminiServiceError(f"Gemini request failed: {exc}") from exc
         return payload, model
 
-    def _request_json(self, model: str, request: dict[str, Any]) -> dict[str, Any]:
+    def _request_json(
+        self, model: str, request: dict[str, Any], api_key: str, timeout: float
+    ) -> dict[str, Any]:
         thinking_level = THINKING_LEVELS.get(model)
-        response = self._client.interactions.create(
-            model=model,
-            **({"generation_config": {"thinking_level": thinking_level}} if thinking_level else {}),
-            **request,
+        body = {"model": model, **request}
+        if thinking_level:
+            body["generation_config"] = {"thinking_level": thinking_level}
+        # A direct request lets the gate try the fallback without SDK backoff.
+        response = self._client.post(
+            GEMINI_INTERACTIONS_URL,
+            headers={"x-goog-api-key": api_key},
+            json=body,
+            timeout=timeout,
         )
-        if not response.output_text:
+        response.raise_for_status()
+        text = "".join(
+            part["text"]
+            for step in response.json().get("steps", [])
+            if step.get("type") == "model_output"
+            for part in step.get("content", [])
+            if part.get("type") == "text"
+        )
+        if not text:
             raise GeminiServiceError("Gemini returned an empty response")
-        payload = json.loads(response.output_text)
+        payload = json.loads(text)
         if not isinstance(payload, dict):
             raise GeminiServiceError("Gemini returned a non-object JSON response")
         return payload
