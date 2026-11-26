@@ -55,11 +55,12 @@ def fetch_camera_image(url: str, timeout_seconds: float = 10.0) -> tuple[np.ndar
     content_type = response.headers.get("content-type", "")
     if content_type and not content_type.lower().startswith("image/"):
         raise ImageSourceError(f"Camera returned non-image content type: {content_type}")
-    # Entrance needs a 180-degree rotation relative to the shared horizontal
-    # correction: H followed by H+V is equivalent to V on the sensor image.
-    # Apply this before previews and OCR so plate boxes use the same pixels.
+    # Turn both existing views upside down, then mirror the exit left/right.
+    # The old entrance view was V and exit was H relative to the sensor;
+    # the composed corrections are now H for entrance and H+V for exit.
+    # Apply before previews and OCR so plate boxes use the same pixels.
     entrance_url = os.getenv("ESP32_ENTRANCE_CAPTURE_URL", "").strip() or os.getenv("ESP32_CAPTURE_URL", "").strip()
-    flip_code = 0 if entrance_url and url == entrance_url else 1
+    flip_code = 1 if entrance_url and url == entrance_url else -1
     image = cv2.flip(decode_image(response.content), flip_code)
     return image, "esp32_capture.jpg"
 

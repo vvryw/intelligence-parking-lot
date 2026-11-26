@@ -2,22 +2,23 @@
 
 ## Entrance and exit boards
 
-| Role | Device MAC address | USB port at setup | Identify signal |
-|---|---|---|---|
-| Entrance · Coming in | `c0:cd:d6:8d:d4:dc` | `/dev/cu.usbserial-11440` | One short white flash |
-| Exit · Going out | `ac:15:18:66:af:cc` | `/dev/cu.usbserial-1130` | Two short white flashes |
+| Role | Identify signal |
+|---|---|
+| Entrance · Coming in | One short white flash |
+| Exit · Going out | Two short white flashes |
 
-USB port names and Wi-Fi addresses can change. The MAC identifies the physical
-board. Mark the boards with Entrance and Exit labels after identifying them.
-Role firmware reports `role` and `mac` through `/health`. Send `POST /identify`
-to a camera or send `identify` followed by a newline over its USB serial port
-at 115200 baud to flash its identification signal.
+Label each board and note its USB serial port. To set the role in the firmware
+before flashing, add `#define CAMERA_ROLE "entrance"` or
+`#define CAMERA_ROLE "exit"` to the local `wifi_secrets.h`. Role firmware reports
+`role` and `mac` through `/health`. Send `POST /identify` to the camera or send
+`identify` followed by a newline over USB serial at 115200 baud to flash its
+identification signal.
 
-Configure each camera while both are plugged in:
+Configure each camera with its own serial port:
 
 ```bash
-.venv/bin/python -m app.camera_setup --camera entrance --port /dev/cu.usbserial-11440
-.venv/bin/python -m app.camera_setup --camera exit --port /dev/cu.usbserial-1130
+python -m app.camera_setup --camera entrance --port ENTRANCE_SERIAL_PORT
+python -m app.camera_setup --camera exit --port EXIT_SERIAL_PORT
 ```
 
 Each command verifies a photo before saving its role-specific capture URL to
@@ -30,14 +31,14 @@ For a controller, `POST /capture` accepts a form field `camera=entrance` or
 `--camera entrance --camera-url` or `--camera exit --camera-url`.
 
 For Entrance, the laptop sends the photo to Gemini for vehicle classification and
-a plate box, then reads the crop locally with EasyOCR. For Exit, the laptop finds
-the plate locally and runs EasyOCR. If the crop is unclear, draw a box on the still
+a plate box, then reads the crop locally with PaddleOCR. For Exit, the laptop finds
+the plate locally and runs PaddleOCR. If the crop is unclear, draw a box on the still
 or supply `plate_bbox` to the API or `--plate-bbox` to the CLI.
 
 An ESP32-CAM-MB is the USB programmer/power adapter underneath the camera board.
 Use USB to upload firmware and read the serial log. Once Wi-Fi firmware is
 installed, the camera can boot independently on power and serve images over Wi-Fi;
-the computer does not need to remain connected by USB. Gemini and EasyOCR still
+the computer does not need to remain connected by USB. Gemini and PaddleOCR still
 run on the laptop/server. Internet access from another location requires an
 additional remote connection or server upload design; this `/capture` workflow
 expects a network-reachable camera address.
@@ -116,7 +117,7 @@ python -m app.cli --camera-url http://YOUR_CAMERA_IP/capture --capture-only data
 
 Replace `YOUR_CAMERA_IP` with the address printed by your board. The command
 prints `status: captured`, the saved path, and image dimensions. It calls neither
-Gemini nor EasyOCR. Open the photo and check that the plate is large, sharp, and
+Gemini nor PaddleOCR. Open the photo and check that the plate is large, sharp, and
 well lit. The output path is overwritten if it already exists.
 
 Set your verified endpoint as `ESP32_CAPTURE_URL` in `.env`, then run:
@@ -128,8 +129,9 @@ python -m app.cli --image data/samples/camera_test.jpg --plate-bbox 336,600,680,
 ```
 
 The second command's coordinates are examples; replace them for your image.
-Gemini needs `GEMINI_API_KEY`; EasyOCR downloads models on its first OCR call.
-Output should include `vehicle_type`, `license_plate`, `ocr_engine: easyocr`, and
+Set `GEMINI_API_KEY` for entrance classification and download OCR models with
+`python scripts/setup_paddleocr.py`.
+Output should include `vehicle_type`, `license_plate`, `ocr_engine: paddleocr-v5-th`, and
 the review status. OCR transcribes all detected text in the plate crop, so a
 province line included in that crop can appear in `license_plate` too.
 
@@ -156,6 +158,6 @@ curl -X POST http://127.0.0.1:8000/capture
   defines the capture endpoint separately from streaming.
 - No plate found: inspect the saved photo, improve focus/lighting, or use a manual
   plate bounding box. A vehicle classification can succeed even if OCR needs review.
-- EasyOCR download error: allow the first model download, then retry; cached
-  models are reused locally.
+- Missing PaddleOCR models: run `python scripts/setup_paddleocr.py` from the
+  repository directory. Downloaded models are reused locally.
 

@@ -47,3 +47,27 @@ def test_openthai_preserves_low_confidence_output_for_review():
     assert result.text == "กห6000"
     assert result.status == "needs_review"
     assert result.engine == "openthai-2.0.0"
+
+
+def test_optional_paddle_reads_identical_crop_and_is_not_called_without_opt_in():
+    image = np.zeros((20, 80), dtype=np.uint8)
+    calls = []
+
+    class Reader:
+        def __init__(self, engine):
+            self.engine = engine
+
+        def warm_up(self):
+            pass
+
+        def read(self, supplied, bbox):
+            assert supplied is image
+            calls.append(self.engine)
+            return OCRResult(text="ME204", engine=self.engine, status="success")
+
+    comparator = OCRComparison(Reader("easyocr"), Reader("openthai"), Reader("paddleocr-v5-th"))
+    assert len(comparator.compare(image, None)) == 2
+    assert "paddleocr-v5-th" not in calls
+    results = comparator.compare(image, None, "ME204", include_paddle=True)
+    assert [row["engine"] for row in results] == ["easyocr", "openthai", "paddleocr-v5-th"]
+    assert all(row["score"]["exact_match"] for row in results)

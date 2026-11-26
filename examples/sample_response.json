@@ -6,7 +6,7 @@
   "license_plate": "กข1234",
   "ocr_confidence": 0.82,
   "plate_bbox": [231, 326, 407, 378],
-  "ocr_engine": "easyocr",
+  "ocr_engine": "paddleocr-v5-th",
   "status": "success",
   "needs_review": false,
   "processing_ms": {

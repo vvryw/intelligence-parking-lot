@@ -80,12 +80,25 @@ def preprocess_plate(crop: np.ndarray) -> np.ndarray:
         (max(1, int(width * scale)), max(1, int(height * scale))),
         interpolation=cv2.INTER_CUBIC if scale >= 1 else cv2.INTER_AREA,
     )
-    denoised = cv2.fastNlMeansDenoising(resized, None, 10, 7, 21)
-    contrasted = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(denoised)
-    softened = cv2.GaussianBlur(contrasted, (0, 0), sigmaX=0.9)
-    sharpened = cv2.addWeighted(contrasted, 1.25, softened, -0.25, 0)
-    # Widen the contrast around the midtones while preserving gray character edges.
-    return cv2.addWeighted(sharpened, 1.23, sharpened, 0.0, -24.0)
+    denoised = cv2.bilateralFilter(resized, 5, 18, 18)
+    window = max(7, round(min(resized.shape) * 0.55)) | 1
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (window, window))
+    # Estimate how the white plate is lit behind the dark registration strokes.
+    background = cv2.morphologyEx(denoised, cv2.MORPH_CLOSE, kernel)
+    background = cv2.GaussianBlur(background, (0, 0), sigmaX=window / 6)
+    flattened = cv2.divide(denoised, np.maximum(background, 1), scale=255)
+
+    black, white = np.percentile(flattened, (5, 90))
+    if white - black >= 18:
+        white = min(white, 248)
+        # Stretch the contrast while keeping grayscale edges and Thai marks.
+        levels = (np.arange(256) - black) * (255 / (white - black))
+        flattened = cv2.LUT(flattened, np.clip(levels, 0, 255).astype(np.uint8))
+
+    margin = max(6, min(flattened.shape) // 12)
+    return cv2.copyMakeBorder(
+        flattened, margin, margin, margin, margin, cv2.BORDER_CONSTANT, value=255,
+    )
 
 
 class PlatePipeline:

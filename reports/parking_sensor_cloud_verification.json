@@ -1,0 +1,30 @@
+{
+  "checks": [
+    {
+      "passed": true,
+      "check": "Stale sensor reading excludes its bay"
+    },
+    {
+      "passed": true,
+      "check": "Fresh occupied reading excludes its bay"
+    },
+    {
+      "passed": true,
+      "check": "Out-of-order free reading cannot overwrite newer occupied data"
+    },
+    {
+      "passed": true,
+      "check": "Fresh free reading restores an unassigned bay"
+    },
+    {
+      "passed": true,
+      "check": "Required-sensor mode blocks uninstrumented bays"
+    },
+    {
+      "passed": true,
+      "check": "Removed only this test sensor row; original occupancy restored"
+    }
+  ],
+  "physical_sensors_used": false,
+  "recorded_at": "2026-11-26T18:20:02.032038+00:00"
+}

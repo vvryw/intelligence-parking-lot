@@ -19,11 +19,16 @@ from .pipeline import ParkingAIPipeline
 from .schemas import parse_bbox
 from .cameras import CAMERA_LABELS, CameraRole, camera_url
 from .ocr_comparison import OCRComparison
+from .ocr_reader import EasyOCRReader
 from .plate_pipeline import crop_manual
+from .parking_store import ParkingStore
+from .parking_recognition import ParkingRecognition
+from .parking_api import parking_router
+from .supabase_parking import create_parking_store
 
 app = FastAPI(title="Intelligence Parking Lot Day 1 AI", version="0.1.0")
 pipeline = ParkingAIPipeline()
-ocr_comparison = OCRComparison(pipeline.ocr_reader)
+ocr_comparison = OCRComparison(EasyOCRReader(), paddle=pipeline.ocr_reader)
 MAX_IMAGE_BYTES = 15 * 1024 * 1024
 WEB_DIR = Path(__file__).resolve().parent / "web"
 camera_locks = {role: Lock() for role in CAMERA_LABELS}
@@ -111,7 +116,7 @@ def warm_ocr() -> None:
     try:
         pipeline.ocr_reader.warm_up()
     except Exception as exc:
-        logger.warning("EasyOCR preload failed: %s", exc)
+        logger.warning("PaddleOCR preload failed: %s", exc)
 
 
 @app.get("/health")
@@ -127,6 +132,10 @@ async def decode_upload(image: UploadFile):
         return await asyncio.to_thread(decode_image, data)
     except ImageSourceError as exc:
         raise HTTPException(400, str(exc)) from exc
+
+
+parking_store = create_parking_store()
+app.include_router(parking_router(ParkingRecognition(pipeline, parking_store), decode_upload))
 
 
 @app.post("/classify")
@@ -157,6 +166,7 @@ def read_selected_plate(image, bbox: str | None) -> dict:
             raise ValueError(crop.error or "Draw a valid box around the license plate")
         return {
             "license_plate": None,
+            "ocr_engine": pipeline.ocr_reader.engine,
             "bbox": None,
             "confidence": None,
             "status": "needs_review",
@@ -171,6 +181,7 @@ def read_selected_plate(image, bbox: str | None) -> dict:
     result = pipeline.ocr_reader.read(crop.image, crop.bbox)
     return {
         "license_plate": result.text,
+        "ocr_engine": result.engine,
         "bbox": crop.bbox,
         "confidence": result.confidence,
         "status": result.status,
@@ -197,7 +208,7 @@ async def plate_read(
         raise HTTPException(400, str(exc)) from exc
 
 
-def compare_selected_plate(image, bbox: str, expected: str | None = None, enhance: bool = True) -> dict:
+def compare_selected_plate(image, bbox: str, expected: str | None = None, enhance: bool = True, include_paddle: bool = False) -> dict:
     started = perf_counter()
     parsed = parse_bbox(bbox)
     if parsed is None:
@@ -209,11 +220,12 @@ def compare_selected_plate(image, bbox: str, expected: str | None = None, enhanc
     success, jpeg = cv2.imencode(".jpg", crop.image)
     if not success:
         raise ValueError("Could not encode the enhanced plate crop")
+    kwargs = {"include_paddle": True} if include_paddle else {}
     return {
         "bbox": crop.bbox,
         "enhanced_plate": f"data:image/jpeg;base64,{b64encode(jpeg).decode('ascii')}",
         "preprocess_ms": round(preprocess_ms, 1),
-        "results": ocr_comparison.compare(crop.image, crop.bbox, expected),
+        "results": ocr_comparison.compare(crop.image, crop.bbox, expected, **kwargs),
         "input_variant": "enhanced" if enhance else "raw",
         "note": "Same crop; sequential local reads. OCR time excludes model loading and image preparation. Confidence values are not comparable between engines.",
     }
@@ -224,10 +236,11 @@ async def plate_compare(
     image: UploadFile = File(...), plate_bbox: str = Form(..., min_length=1),
     camera: CameraRole = Form("entrance"), expected: str | None = Form(None, max_length=80),
     enhance: bool = Form(True),
+    include_paddle: bool = Form(False),
 ) -> dict:
     decoded = await decode_upload(image)
     try:
-        result = await asyncio.to_thread(compare_selected_plate, decoded, plate_bbox, expected, enhance)
+        result = await asyncio.to_thread(compare_selected_plate, decoded, plate_bbox, expected, enhance, include_paddle)
         return {"camera": camera, **result}
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc

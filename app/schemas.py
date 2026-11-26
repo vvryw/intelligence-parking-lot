@@ -43,7 +43,7 @@ class OCRResult:
     text: str | None = None
     confidence: float | None = None
     bbox: BBox | None = None
-    engine: str = "easyocr"
+    engine: str = "paddleocr-v5-th"
     processing_ms: float = 0.0
     status: ReviewStatus = "failed"
     error: str | None = None

@@ -1,0 +1,2 @@
+# Backward-compatible alias: PaddleOCR is included in the core requirements.
+-r requirements.txt

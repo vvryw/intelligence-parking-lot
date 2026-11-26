@@ -16,6 +16,8 @@ data/samples/*
 reports/results.csv
 reports/day1_results.md
 models/
+data/runtime/
+data/storage/
 .tools/
 camera/parking_camera/wifi_secrets.h
 camera/parking_camera/build/
@@ -34,3 +36,6 @@ camera/parking_camera/*.map
 .DS_Store
 Thumbs.db
 
+
+# Private cloud console captures
+reports/assets/supabase-*.jpg

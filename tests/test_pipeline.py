@@ -3,6 +3,7 @@ import numpy as np
 from app.plate_pipeline import PlateCrop
 from app.gemini_service import GeminiJSONService
 from app.ocr_reader import EasyOCRReader
+from app.paddleocr_reader import PaddleOCRReader
 from app.pipeline import ParkingAIPipeline
 from app.schemas import OCRResult, VehicleResult
 from app.vehicle_detector import GeminiVehicleDetector
@@ -21,6 +22,12 @@ class StubPlate:
 class StubOCR:
     def read(self, image, bbox):
         return OCRResult("กข1234", 0.81, bbox, "easyocr", 3.0, "success")
+
+
+def test_default_pipeline_uses_paddleocr_for_thai_and_english():
+    pipeline = ParkingAIPipeline(vehicle_detector=StubVehicle())
+    assert isinstance(pipeline.ocr_reader, PaddleOCRReader)
+    assert pipeline.ocr_reader.language == "th"
 
 
 def test_combined_result_contract():

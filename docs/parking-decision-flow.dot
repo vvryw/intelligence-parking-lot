@@ -1,0 +1,36 @@
+digraph parking_decision {
+ graph [rankdir=TB,bgcolor="#f4f7fc",pad="0.4",nodesep="0.45",ranksep="0.65",fontname="Helvetica",fontsize=22,label="ENTRY / EXIT — PARKING & GATE RULES",labelloc=t];
+ node [shape=box,style="rounded,filled",fillcolor="white",color="#a8bdd2",fontname="Helvetica",fontsize=13,margin="0.2,0.14"];
+ edge [fontname="Helvetica",fontsize=11,color="#54718b"];
+ photo [label="Capture one still -> archive original + crop\nPaddleOCR reads plate; Gemini classifies entry only"];
+ quality [shape=diamond,label="Recognition usable?\nPlate readable; entry type known"];
+ direction [shape=diamond,label="Entry or exit?"];
+ type [shape=diamond,label="Entry vehicle type"];
+ normal [label="NORMAL-1 / NORMAL-2 / NORMAL-3\nOnly normal cars\nNo overflow into VIP"];
+ vip [label="VIP-1 / VIP-2\nOnly sportcar / supercar\nNo overflow into normal"];
+ free [shape=diamond,label="Matching bay available?\nExclude active sessions and\noccupied / stale sensor bays"];
+ duplicate [shape=diamond,label="Already inside?"];
+ allocate [label="One database transaction\nAllocate matching bay + create still_in visit\nRecord one simulated OPEN",fillcolor="#ddf4e8"];
+ match [shape=diamond,label="Exit plate matches\nan active visit?"];
+ release [label="One database transaction\nMark visit left + record exit time / photo\nRelease its own bay + simulated OPEN",fillcolor="#ddf4e8"];
+ closed [label="KEEP GATE CLOSED\nNo allocation / no release\nSave denial for review",fillcolor="#ffe6e1",color="#c8877b"];
+ retry [label="Retry protection: same observation / request ID\nreturns original decision without another allocation or OPEN",shape=note,fillcolor="#fff3d9"];
+ photo -> quality;
+ quality -> closed [label="No"];
+ quality -> direction [label="Yes"];
+ direction -> duplicate [label="Entry"];
+ duplicate -> closed [label="Yes"];
+ duplicate -> type [label="No"];
+ type -> normal [label="car"];
+ type -> vip [label="sportcar / supercar"];
+ type -> closed [label="unknown / unsupported"];
+ normal -> free;
+ vip -> free;
+ free -> closed [label="No / full"];
+ free -> allocate [label="Yes"];
+ direction -> match [label="Exit (no Gemini call)"];
+ match -> closed [label="No"];
+ match -> release [label="Yes, even when lot is full"];
+ allocate -> retry [style=dashed];
+ release -> retry [style=dashed];
+}

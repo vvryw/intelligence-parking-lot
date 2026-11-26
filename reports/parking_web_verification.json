@@ -1,0 +1,63 @@
+{
+  "recorded_at": "2026-11-26T18:21:34.712329+00:00",
+  "source": "Browser test using the user-provided ME204 image; simulated gate only",
+  "plate": "ME204",
+  "vehicle_type": "sportcar",
+  "assigned_space": "VIP-1",
+  "entry_registered": true,
+  "exit_registered": true,
+  "visit_status": "left",
+  "entry_time": "2026-11-26T18:18:51.92627+00:00",
+  "exit_time": "2026-11-26T18:20:07.845924+00:00",
+  "capacity_after_exit": {
+    "vip": {
+      "total": 2,
+      "occupied": 0,
+      "available": 2,
+      "unavailable": 0
+    },
+    "normal": {
+      "total": 3,
+      "occupied": 0,
+      "available": 3,
+      "unavailable": 0
+    }
+  },
+  "photos": [
+    {
+      "role": "entrance",
+      "bytes": 111341,
+      "decoded": true
+    },
+    {
+      "role": "exit",
+      "bytes": 111341,
+      "decoded": true
+    }
+  ],
+  "bucket_public": false,
+  "unauthenticated_public_photo_blocked": true,
+  "recognition": {
+    "entrance": {
+      "license_plate": "ME204",
+      "ocr_engine": "paddleocr-v5-th",
+      "eligible": true,
+      "processing_ms": {
+        "total": 3520.344,
+        "vehicle": 2881.885,
+        "plate_and_ocr": 611.879
+      }
+    },
+    "exit": {
+      "license_plate": "ME204",
+      "ocr_engine": "paddleocr-v5-th",
+      "eligible": true,
+      "processing_ms": {
+        "total": 54.368,
+        "vehicle": null,
+        "plate_and_ocr": 48.07
+      }
+    }
+  },
+  "physical_gate_opened": false
+}

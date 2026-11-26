@@ -26,6 +26,10 @@ let drag;
 let classifying = false;
 let reading = false;
 let showSensorOrientation = false;
+let currentObservation;
+let analysisFresh = false;
+let registering = false;
+let registered = false;
 
 function applyMirror() {
   // Camera frames arrive corrected. One display flip shows the sensor orientation.
@@ -66,14 +70,17 @@ function seconds(value) {
 }
 
 function updateControls() {
-  cameraSelect.disabled = classifying || reading;
-  trigger.disabled = classifying || reading;
-  element("test-image").disabled = classifying || reading;
-  resume.disabled = classifying || reading;
-  readPlate.disabled = !snapshot || !box || reading;
+  const busy = classifying || reading || registering;
+  element("register-parking").disabled = busy || !analysisFresh || !currentObservation || registered;
+  cameraSelect.disabled = busy;
+  trigger.disabled = busy;
+  element("test-image").disabled = busy;
+  resume.disabled = busy;
+  readPlate.disabled = !snapshot || !box || reading || registering;
   comparePlate.disabled = !snapshot || !box || reading || classifying;
   element("expected-plate").disabled = reading || classifying;
   element("enhance-comparison").disabled = reading || classifying;
+  element("include-paddle").disabled = reading || classifying;
 }
 
 function startPreview() {
@@ -114,6 +121,10 @@ for (const stream of streams) {
 }
 
 function clearSelection() {
+  currentObservation = undefined;
+  analysisFresh = false;
+  registered = false;
+  status("parking-decision", "", "Analyze the photo, review the plate, then check the gate.");
   snapshot = undefined;
   box = undefined;
   drag = undefined;
@@ -199,36 +210,10 @@ trigger.addEventListener("click", async () => {
     status("preview-status", "", "Captured still");
     element("preview-note").textContent = "Drag a tight box to adjust the plate selection.";
     element("camera-time").textContent = seconds(photo.headers.get("X-Camera-Ms"));
-    if (capturedCamera === "exit") {
-      status("capture-status", "success", "Exit photo captured for local plate OCR.");
-      await readSelectedPlate();
-      return;
-    }
-    status("capture-status", "pending", "Gemini is classifying the vehicle…");
-    status("plate-status", "pending", "Finding the plate. You can also draw its box.");
-
-    const result = await requestJSON("/classify", snapshotForm());
-    const names = { car: "Passenger car", sportcar: "Sports car", supercar: "Supercar", unknown: "Unknown" };
-    element("vehicle").textContent = names[result.vehicle_type] ?? "Unknown";
-    element("model").textContent = result.model || "—";
-    element("gemini-time").textContent = seconds(result.processing_ms);
-    if (result.error && result.confidence == null) {
-      status("capture-status", "error", "Gemini classification failed.");
-    } else {
-      status("capture-status", result.needs_review ? "review" : "success", result.needs_review ? "Classification needs review." : "Vehicle classified.");
-    }
-    errorMessage("capture-error", result.error);
-    if (!box && !drag) {
-      if (result.plate_bbox) {
-        box = result.plate_bbox;
-        showSelectedBox();
-        await readSelectedPlate();
-      } else {
-        status("plate-status", "review", "No clear plate found. Draw a box around it to read it.");
-      }
-    }
+    status("capture-status", "pending", capturedCamera === "entrance" ? "Classifying the vehicle and reading the plate…" : "Reading the exit plate…");
+    await analyzeParkingPhoto();
   } catch (error) {
-    status("capture-status", "error", stage.hidden ? "Camera capture failed." : "Gemini request failed.");
+    status("capture-status", "error", stage.hidden ? "Camera capture failed." : "Parking analysis failed.");
     errorMessage("capture-error", error.message);
     if (stage.hidden) resumePreview();
     else if (!box && !drag) status("plate-status", "review", "Draw a box around the plate to read it.");
@@ -278,7 +263,8 @@ function drawBox(event) {
 }
 
 stage.addEventListener("pointerdown", (event) => {
-  if (!event.isPrimary || event.button !== 0 || reading) return;
+  if (!event.isPrimary || event.button !== 0 || reading || classifying || registering) return;
+  analysisFresh = false;
   drag = { id: event.pointerId, start: imagePoint(event) };
   stage.setPointerCapture(drag.id);
   box = undefined;
@@ -312,41 +298,45 @@ stage.addEventListener("pointercancel", (event) => {
   updateControls();
 });
 
-async function readSelectedPlate() {
-  if (!snapshot || (!box && capturedCamera !== "exit") || reading) return;
-  reading = true;
+async function analyzeParkingPhoto() {
+  const data = snapshotForm();
+  if (box) data.append("plate_bbox", box.join(","));
+  if (currentObservation) data.append("previous_observation_id", currentObservation.observation_id);
+  const result = await requestJSON("/parking/analyze", data);
+  currentObservation = result;
+  analysisFresh = true;
+  registered = false;
+  if (result.plate_bbox) { box = result.plate_bbox; showSelectedBox(); }
+  const names = { car: "Passenger car", sportcar: "Sports car", supercar: "Supercar", unknown: "Unknown" };
+  element("vehicle").textContent = capturedCamera === "exit" ? "Matched from entry on exit" : (names[result.vehicle_type] || "Unknown");
+  element("model").textContent = result.model || "—";
+  element("gemini-time").textContent = seconds(result.processing_ms.vehicle);
+  element("plate").textContent = result.license_plate || "Unreadable";
+  element("enhancement-time").textContent = seconds(result.preprocess_ms);
+  element("ocr-time").textContent = seconds(result.ocr_ms);
+  if (result.enhanced_plate) {
+    element("enhanced-plate").src = result.enhanced_plate;
+    element("enhanced-plate").hidden = false;
+  }
+  status("capture-status", result.eligible ? "success" : "review", result.eligible ? "Analysis saved. Review the plate, then check the gate." : "Analysis saved. Recognition needs review.");
+  status("plate-status", result.eligible ? "success" : "review", result.license_plate ? "Plate read. Redraw its box if needed." : "No clear plate found. Draw a box around the characters.");
+  errorMessage("capture-error", result.vehicle?.error);
+  errorMessage("plate-error", result.errors.filter((error) => error !== result.vehicle?.error).join(" · "));
+  status("parking-decision", "", "Photo saved. Check the gate to allocate or release a matching space.");
   updateControls();
-  status("plate-status", "pending", "Enhancing the crop and reading the plate…");
-  clearPlateResult();
+}
 
+async function readSelectedPlate() {
+  if (!snapshot || (!box && capturedCamera !== "exit") || reading || registering) return;
+  reading = true;
+  analysisFresh = false;
+  updateControls();
+  status("plate-status", "pending", "Enhancing, reading, and saving the photo…");
+  clearPlateResult();
   try {
-    const data = snapshotForm();
-    if (box) data.append("plate_bbox", box.join(","));
-    const result = await requestJSON("/plate/read", data);
-    if (!box && result.bbox) {
-      box = result.bbox;
-      showSelectedBox();
-    }
-    if (result.enhanced_plate) {
-      const enhanced = element("enhanced-plate");
-      enhanced.src = result.enhanced_plate;
-      enhanced.hidden = false;
-    }
-    element("plate").textContent = result.license_plate || "Unreadable";
-    element("enhancement-time").textContent = seconds(result.preprocess_ms);
-    element("ocr-time").textContent = seconds(result.ocr_ms);
-    if (result.status === "success") {
-      status("plate-status", "success", "Plate read. Redraw the box if needed.");
-    } else if (result.status === "failed") {
-      status("plate-status", "error", "EasyOCR could not read the plate.");
-    } else if (!box) {
-      status("plate-status", "review", "No clear plate found. Draw a box around the registration characters.");
-    } else {
-      status("plate-status", "review", "Plate needs review. Try a tighter box.");
-    }
-    errorMessage("plate-error", box ? result.error : "");
+    await analyzeParkingPhoto();
   } catch (error) {
-    status("plate-status", "error", "Could not read the selected plate.");
+    status("plate-status", "error", "Could not analyze and save this photo.");
     errorMessage("plate-error", error.message);
   } finally {
     reading = false;
@@ -390,7 +380,7 @@ element("test-image").addEventListener("change", async (event) => {
     element("capture-camera").textContent = "Uploaded test photo";
     status("preview-status", "", "Test photo");
     status("capture-status", "", "Test photo loaded. Draw a box around the plate.");
-    status("plate-status", "", "Draw a box, then read it or compare both engines.");
+    status("plate-status", "", "Draw a box, then read it or compare OCR models.");
     element("preview-note").textContent = file.name;
   } catch (error) {
     resumePreview();
@@ -403,10 +393,11 @@ element("test-image").addEventListener("change", async (event) => {
 });
 
 comparePlate.addEventListener("click", async () => {
-  if (!snapshot || !box || reading || classifying) return;
+  if (!snapshot || !box || reading || classifying || registering) return;
+  analysisFresh = false;
   reading = true;
   updateControls();
-  status("plate-status", "pending", "Comparing EasyOCR and OpenThai on the same crop…");
+  status("plate-status", "pending", "Comparing the selected OCR models on the same crop…");
   clearPlateResult();
   try {
     const data = snapshotForm();
@@ -414,6 +405,7 @@ comparePlate.addEventListener("click", async () => {
     const expected = element("expected-plate").value.trim();
     if (expected) data.append("expected", expected);
     data.append("enhance", String(element("enhance-comparison").checked));
+    data.append("include_paddle", String(element("include-paddle").checked));
     const result = await requestJSON("/plate/compare", data);
     element("enhanced-plate").src = result.enhanced_plate;
     element("enhanced-plate").hidden = false;
@@ -434,7 +426,7 @@ comparePlate.addEventListener("click", async () => {
       body.append(row);
     }
     element("ocr-comparison").hidden = false;
-    status("plate-status", failed ? "review" : "success", failed ? "Comparison finished with an engine error." : "Comparison complete. Review both readings below.");
+    status("plate-status", failed ? "review" : "success", failed ? "Comparison finished with an engine error." : "Comparison complete. Review the readings below.");
   } catch (error) {
     status("plate-status", "error", "OCR comparison failed.");
     errorMessage("plate-error", error.message);
@@ -444,5 +436,156 @@ comparePlate.addEventListener("click", async () => {
   }
 });
 
+const decisionMessages = {
+  entry_registered: "Entry registered",
+  exit_registered: "Exit registered; space released",
+  normal_full: "No normal bay is available. Normal cars cannot use VIP bays",
+  vip_full: "No VIP bay is available. Sports cars and supercars cannot use normal bays",
+  already_inside: "This plate is already registered inside",
+  no_active_session: "No active visit matches this exit plate",
+  recognition_needs_review: "Plate or vehicle recognition needs review",
+  unsupported_vehicle_type: "Vehicle type is not supported",
+};
+let parkingRefreshing = false;
+let parkingRefreshVersion = 0;
+let gateCloseTimer;
+
+function renderParkingStatus(state) {
+  element("vip-available").textContent = state.capacity.vip.available;
+  element("normal-available").textContent = state.capacity.normal.available;
+  status("parking-cloud", "live", state.storage === "supabase" ? "Supabase connected" : "Local database ready");
+  const list = element("parking-spaces");
+  list.replaceChildren();
+  for (const bay of state.spaces) {
+    const card = document.createElement("div");
+    card.className = "space-card";
+    card.dataset.state = bay.status;
+    const name = document.createElement("strong");
+    name.textContent = bay.id;
+    const occupancy = document.createElement("span");
+    occupancy.textContent = { free: "Available", occupied: "Occupied", sensor_occupied: "Sensor occupied", sensor_stale: "Sensor stale", sensor_unknown: "Sensor unknown" }[bay.status] || "Unavailable";
+    const plate = document.createElement("span");
+    plate.textContent = bay.plate || (bay.kind === "vip" ? "Sports / supercar" : "Normal car");
+    card.append(name, occupancy, plate);
+    list.append(card);
+  }
+}
+
+function parkingTime(value) {
+  return value ? new Date(value).toLocaleString("en-GB", {timeZone:"Asia/Bangkok"}) : "—";
+}
+
+function tableCell(row, text) {
+  const cell = document.createElement("td");
+  cell.textContent = text ?? "—";
+  row.append(cell);
+  return cell;
+}
+
+function renderParkingHistory(history) {
+  const visits = element("parking-visits");
+  visits.replaceChildren();
+  for (const visit of history.sessions) {
+    const row = document.createElement("tr");
+    tableCell(row, visit.plate);
+    tableCell(row, `${visit.vehicle_type} · ${visit.space_id || "—"}`);
+    tableCell(row, visit.status === "still_in" ? "Still inside" : "Left");
+    tableCell(row, parkingTime(visit.entered_at));
+    tableCell(row, parkingTime(visit.exited_at));
+    const photos = tableCell(row, "");
+    for (const [label, url] of [["Entry", visit.entrance_photo_url], ["Exit", visit.exit_photo_url]]) {
+      if (!url?.startsWith("/parking/media/")) continue;
+      const link = document.createElement("a");
+      link.href = url; link.target = "_blank"; link.rel = "noopener"; link.textContent = `${label} photo `;
+      photos.append(link);
+    }
+    visits.append(row);
+  }
+  element("parking-history-note").textContent = history.sessions.length ? "Showing recent visits. Times are in Bangkok time." : "No parking visits yet.";
+  const events = element("parking-events");
+  events.replaceChildren();
+  for (const event of history.events) {
+    const row = document.createElement("tr");
+    tableCell(row, parkingTime(event.created_at));
+    tableCell(row, event.camera === "entrance" ? "Entry" : "Exit");
+    tableCell(row, event.plate);
+    tableCell(row, `${event.approved ? "Allowed" : "Denied"}: ${decisionMessages[event.reason] || event.reason}`);
+    tableCell(row, event.space_id);
+    events.append(row);
+  }
+}
+
+async function parkingGET(path) {
+  const response = await fetch(path, {cache:"no-store"});
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.detail || "Parking service unavailable");
+  return result;
+}
+
+async function refreshParking() {
+  if (parkingRefreshing) return;
+  parkingRefreshing = true;
+  const version = ++parkingRefreshVersion;
+  try {
+    const state = await parkingGET("/parking/status");
+    if (version === parkingRefreshVersion) renderParkingStatus(state);
+    try {
+      const history = await parkingGET("/parking/history?limit=20");
+      if (version === parkingRefreshVersion) renderParkingHistory(history);
+    } catch (error) {
+      element("parking-history-note").textContent = error.message;
+    }
+  } catch (error) {
+    if (version === parkingRefreshVersion) {
+      status("parking-cloud", "offline", "Database unavailable");
+      element("vip-available").textContent = "—";
+      element("normal-available").textContent = "—";
+      element("parking-spaces").textContent = "Availability unknown. Gate checks fail closed while the database is unreachable.";
+    }
+  } finally { parkingRefreshing = false; }
+}
+
+element("register-parking").addEventListener("click", async () => {
+  if (!analysisFresh || !currentObservation || registering || registered) return;
+  registering = true;
+  updateControls();
+  status("parking-decision", "pending", "Checking the matching bays and recording the decision…");
+  try {
+    const response = await fetch("/parking/commit", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({observation_id:currentObservation.observation_id,request_id:currentObservation.observation_id}),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || "Parking decision failed");
+    registered = true;
+    const decision = result.decision;
+    const explanation = decisionMessages[decision.reason] || decision.reason;
+    status("parking-decision", decision.approved ? "success" : "review", `${explanation}${decision.space_id ? ` · ${decision.space_id}` : ""}.`);
+    const newOpen = decision.approved && !decision.replayed;
+    element("parking-gate").dataset.state = newOpen ? "open" : "closed";
+    window.clearTimeout(gateCloseTimer);
+    element("parking-gate").textContent = newOpen ? `Gate simulator · OPEN for ${decision.camera === "entrance" ? "entry" : "exit"}` : decision.replayed ? "Gate simulator · CLOSED · previous decision recovered; no new OPEN" : "Gate simulator · CLOSED";
+    if (newOpen) {
+      gateCloseTimer = window.setTimeout(() => {
+        element("parking-gate").dataset.state = "closed";
+        element("parking-gate").textContent = "Gate simulator · CLOSED after the 4-second simulation";
+      }, 4000);
+    }
+    ++parkingRefreshVersion;
+    if (result.parking) renderParkingStatus(result.parking);
+    await refreshParking();
+  } catch (error) {
+    status("parking-decision", "error", error.message);
+    element("parking-gate").dataset.state = "closed";
+    element("parking-gate").textContent = "Gate simulator · no new OPEN confirmed. Retry the same check to recover a recorded decision.";
+  } finally {
+    registering = false;
+    updateControls();
+  }
+});
+
+element("refresh-parking").addEventListener("click", refreshParking);
 applyMirror();
 startPreview();
+refreshParking();
+window.setInterval(() => { if (!document.hidden) refreshParking(); }, 10000);

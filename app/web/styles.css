@@ -94,6 +94,22 @@ label[for="expected-plate"] { display: block; margin-top: .7rem; font-size: .875
 .test-image-label { display: block; margin-top: .8rem; color: var(--muted); font-size: .875rem; }
 #test-image { width: 100%; margin-top: .35rem; color: var(--muted); font: inherit; font-size: .8rem; }
 .enhance-option { display: flex; align-items: center; gap: .4rem; margin-top: .5rem; color: var(--muted); font-size: .875rem; }
+.parking-panel { margin: 1.25rem 0; padding-bottom: 1rem; }
+.parking-summary { display: flex; flex-wrap: wrap; gap: 1rem 2rem; padding: 0 1.25rem 1rem; }
+.parking-spaces { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: .6rem; padding: 0 1.25rem; }
+.space-card { border: 1px solid #527968; border-radius: .5rem; padding: .7rem; min-width: 0; background: #142b23; }
+.space-card[data-state="occupied"], .space-card[data-state="sensor_occupied"] { border-color: #9f7770; background: #3b2424; }
+.space-card[data-state="sensor_stale"], .space-card[data-state="sensor_unknown"] { border-color: #9f8d61; background: #342d20; }
+.space-card strong, .space-card span { display: block; overflow-wrap: anywhere; }
+.space-card span { color: var(--muted); font-size: .82rem; margin-top: .25rem; }
+.parking-note { padding: .8rem 1.25rem 0; }
+.gate-state { margin: .9rem 1.25rem 0; padding: .7rem; border: 1px solid var(--line); border-radius: .4rem; color: var(--muted); }
+.gate-state[data-state="open"] { color: var(--success); border-color: var(--success); }
+.gate-state[data-state="closed"] { color: var(--warning); border-color: var(--warning); }
+.parking-history { overflow-x: auto; margin: 0 1.25rem; }
+.parking-history a { color: var(--accent); }
+.parking-register { margin-top: 1rem; }
+@media (max-width: 47rem) { .parking-spaces { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 #ocr-comparison { margin-top: 1rem; }
 .comparison-scroll { overflow-x: auto; margin-top: .6rem; }
 .comparison-table { width: 100%; border-collapse: collapse; font-size: .8rem; text-align: left; }

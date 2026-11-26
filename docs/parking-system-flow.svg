@@ -1,0 +1,296 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2200" height="1650" viewBox="0 0 2200 1650">
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#34546e"/></marker>
+  <marker id="pending" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" fill="#95531b"/></marker>
+</defs>
+<rect width="2200" height="1650" fill="#f1f5f9"/>
+<style>
+  text{font-family:Helvetica,Arial,sans-serif;fill:#142d43}
+  .title{font-size:44px;font-weight:700}.subtitle{font-size:22px;fill:#466278}
+  .section{font-size:21px;font-weight:700;letter-spacing:1.2px}
+  .head{font-size:22px;font-weight:700}.body{font-size:19px}
+  .small{font-size:17px;fill:#39566d}
+  .label,.pending-label{font-size:17px;paint-order:stroke;stroke:#f1f5f9;stroke-width:8px;stroke-linejoin:round}
+  .label{fill:#34546e}.pending-label{fill:#804511}
+</style>
+<text x="45" y="64" class="title" text-anchor="start">
+<tspan x="45" dy="0">Intelligence Parking Lot · Entire system</tspan>
+</text>
+<text x="46" y="102" class="subtitle" text-anchor="start">
+<tspan x="46" dy="0">Two camera feeds, the parking ledger, live sensor telemetry, and both dashboards</tspan>
+</text>
+<polyline points="1630,102 1685,102" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="1702" y="108" class="small" text-anchor="start">
+<tspan x="1702" dy="0">Implemented</tspan>
+</text>
+<polyline points="1851,102 1906,102" fill="none" stroke="#95531b" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#pending)" stroke-dasharray="9 7"/>
+<text x="1923" y="108" class="small" text-anchor="start">
+<tspan x="1923" dy="0">Prepared / future</tspan>
+</text>
+<rect x="35" y="143" width="2130" height="247" rx="16" fill="#e8eff8" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="60" y="182" class="section" text-anchor="start">
+<tspan x="60" dy="0">INTERNET SERVICES</tspan>
+</text>
+<rect x="60" y="203" width="415" height="155" rx="16" fill="#f4efff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="81" y="237" class="head" text-anchor="start">
+<tspan x="81" dy="0">Google Gemini</tspan>
+</text>
+<text x="81" y="269" class="body" text-anchor="start">
+<tspan x="81" dy="0">Receives the entrance JPEG.</tspan>
+<tspan x="81" dy="25">Returns vehicle type + plate box.</tspan>
+<tspan x="81" dy="25">Classes: car, sportcar, supercar.</tspan>
+</text>
+<rect x="515" y="203" width="465" height="155" rx="16" fill="#e6f5ee" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="536" y="237" class="head" text-anchor="start">
+<tspan x="536" dy="0">Supabase · PostgreSQL</tspan>
+</text>
+<text x="536" y="269" class="body" text-anchor="start">
+<tspan x="536" dy="0">2 VIP spaces + 3 normal spaces</tspan>
+<tspan x="536" dy="25">Visits, decisions, occupancy and timestamps</tspan>
+<tspan x="536" dy="25">Assign or release a bay in one transaction</tspan>
+</text>
+<rect x="1020" y="203" width="470" height="155" rx="16" fill="#e6f5ee" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1041" y="237" class="head" text-anchor="start">
+<tspan x="1041" dy="0">Supabase · Private photo bucket</tspan>
+</text>
+<text x="1041" y="269" class="body" text-anchor="start">
+<tspan x="1041" dy="0">Receives original JPEG + enhanced crop.</tspan>
+<tspan x="1041" dy="25">Returns stored JPEGs to the parking server.</tspan>
+<tspan x="1041" dy="25">PostgreSQL stores the linked media IDs.</tspan>
+</text>
+<rect x="1610" y="203" width="530" height="155" rx="16" fill="#e6f5ee" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1631" y="237" class="head" text-anchor="start">
+<tspan x="1631" dy="0">InfluxDB Cloud · Sensor archive</tspan>
+</text>
+<text x="1631" y="269" class="body" text-anchor="start">
+<tspan x="1631" dy="0">Optional sensor cloud sync on the sensor PC</tspan>
+<tspan x="1631" dy="25">Archives raw UNO and ESP32 telemetry.</tspan>
+<tspan x="1631" dy="25">Returns history on demand to Flask.</tspan>
+</text>
+<rect x="35" y="488" width="1095" height="310" rx="16" fill="#e7f0ff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="58" y="528" class="section" text-anchor="start">
+<tspan x="58" dy="0">CAMERA MAC  ·  FASTAPI  :8000</tspan>
+</text>
+<rect x="60" y="563" width="295" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="81" y="597" class="head" text-anchor="start">
+<tspan x="81" dy="0">1. Camera capture</tspan>
+</text>
+<text x="81" y="629" class="small" text-anchor="start">
+<tspan x="81" dy="0">Requests a still from either role.</tspan>
+<tspan x="81" dy="25">Corrects image orientation.</tspan>
+<tspan x="81" dy="25">Streams previews to the browser.</tspan>
+</text>
+<rect x="390" y="563" width="337" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="411" y="597" class="head" text-anchor="start">
+<tspan x="411" dy="0">2. Recognition + archive</tspan>
+</text>
+<text x="411" y="629" class="small" text-anchor="start">
+<tspan x="411" dy="0">Entry: Gemini classification + box</tspan>
+<tspan x="411" dy="25">Both: crop, enhance, PaddleOCR</tspan>
+<tspan x="411" dy="25">Save JPEG, crop and observation ID.</tspan>
+</text>
+<rect x="762" y="563" width="343" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="783" y="597" class="head" text-anchor="start">
+<tspan x="783" dy="0">3. Parking decision API</tspan>
+</text>
+<text x="783" y="629" class="small" text-anchor="start">
+<tspan x="783" dy="0">Entry: check matching bay capacity.</tspan>
+<tspan x="783" dy="25">Exit: match plate and release its bay.</tspan>
+<tspan x="783" dy="25">Return decision, counts and history.</tspan>
+</text>
+<polyline points="355,644 389,644" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="727,644 761,644" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="60" y="770" class="small" text-anchor="start">
+<tspan x="60" dy="0">Local development can use SQLite and disk photos. The shared deployment uses Supabase.</tspan>
+</text>
+<rect x="1210" y="488" width="955" height="310" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1233" y="528" class="section" text-anchor="start">
+<tspan x="1233" dy="0">SENSOR PC  ·  WINDOWS SERVICES</tspan>
+</text>
+<rect x="1235" y="563" width="260" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1256" y="597" class="head" text-anchor="start">
+<tspan x="1256" dy="0">Mosquitto :1883</tspan>
+</text>
+<text x="1256" y="629" class="small" text-anchor="start">
+<tspan x="1256" dy="0">Receives MQTT JSON.</tspan>
+<tspan x="1256" dy="25">Authenticates gateway clients.</tspan>
+<tspan x="1256" dy="25">Delivers messages to Flask.</tspan>
+</text>
+<rect x="1530" y="563" width="280" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1551" y="597" class="head" text-anchor="start">
+<tspan x="1551" dy="0">Flask :5000</tspan>
+</text>
+<text x="1551" y="629" class="small" text-anchor="start">
+<tspan x="1551" dy="0">Validates messages + freshness.</tspan>
+<tspan x="1551" dy="25">Serves /api/latest and history.</tspan>
+<tspan x="1551" dy="25">Hands telemetry to storage.</tspan>
+</text>
+<rect x="1845" y="563" width="295" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1866" y="597" class="head" text-anchor="start">
+<tspan x="1866" dy="0">InfluxDB OSS :8086</tspan>
+</text>
+<text x="1866" y="629" class="small" text-anchor="start">
+<tspan x="1866" dy="0">Local time-series database.</tspan>
+<tspan x="1866" dy="25">Receives validated telemetry.</tspan>
+<tspan x="1866" dy="25">Returns history to Flask.</tspan>
+</text>
+<polyline points="1495,644 1529,644" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="1810,644 1844,644" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="1235" y="770" class="small" text-anchor="start">
+<tspan x="1235" dy="0">When enabled, the cloud uploader queues raw telemetry and uses HTTPS with server-side credentials.</tspan>
+</text>
+<polyline points="540,488 540,442 265,442 265,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="395" y="431" class="label" text-anchor="middle">
+<tspan x="395" dy="0">HTTPS · JPEG ⇄ class + plate box</tspan>
+</text>
+<polyline points="882,488 882,441 745,441 745,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="810" y="424" class="label" text-anchor="middle">
+<tspan x="810" dy="0">HTTPS · records + results</tspan>
+</text>
+<polyline points="1035,488 1035,442 1215,442 1215,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="1135" y="425" class="label" text-anchor="middle">
+<tspan x="1135" dy="0">HTTPS · upload / fetch JPEGs</tspan>
+</text>
+<polyline points="1875,488 1875,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="1875" y="434" class="label" text-anchor="middle">
+<tspan x="1875" dy="0">HTTPS · optional telemetry writes / history queries</tspan>
+</text>
+<rect x="135" y="920" width="440" height="155" rx="16" fill="#e7f0ff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="156" y="954" class="head" text-anchor="start">
+<tspan x="156" dy="0">Parking dashboard · Browser</tspan>
+</text>
+<text x="156" y="986" class="body" text-anchor="start">
+<tspan x="156" dy="0">Sends capture/upload, crop and commit.</tspan>
+<tspan x="156" dy="25">Shows live images, plate, visit and photos.</tspan>
+<tspan x="156" dy="25">Runs the four-second gate simulator.</tspan>
+</text>
+<rect x="800" y="909" width="650" height="180" rx="16" fill="#fff1df" stroke="#bc8f61" stroke-width="1.5" stroke-dasharray="9 6"/>
+<text x="821" y="943" class="head" text-anchor="start">
+<tspan x="821" dy="0">Prepared · Sensor dashboard bridge</tspan>
+</text>
+<text x="821" y="975" class="body" text-anchor="start">
+<tspan x="821" dy="0">Reads Flask GET /api/latest using Basic Auth.</tspan>
+<tspan x="821" dy="25">Maps A1 to a verified bay ID and skips stale readings.</tspan>
+<tspan x="821" dy="25">POST /parking/sensors → occupancy, UTC time, integration key.</tspan>
+<tspan x="821" dy="25">Dashboard backend can request parking counts, visits and photos.</tspan>
+</text>
+<rect x="1640" y="920" width="485" height="155" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1661" y="954" class="head" text-anchor="start">
+<tspan x="1661" dy="0">Sensor dashboard · Browser</tspan>
+</text>
+<text x="1661" y="986" class="body" text-anchor="start">
+<tspan x="1661" dy="0">Requests current readings and history from Flask.</tspan>
+<tspan x="1661" dy="25">Shows A1 occupancy and environmental charts.</tspan>
+<tspan x="1661" dy="25">Can select local or configured cloud history.</tspan>
+</text>
+<polyline points="350,920 350,798" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="350" y="861" class="label" text-anchor="middle">
+<tspan x="350" dy="0">Local HTTP</tspan>
+<tspan x="350" dy="22">Preview / capture ⇄ decision</tspan>
+</text>
+<polyline points="1875,920 1875,837 1730,837 1730,799" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="1875" y="855" class="label" text-anchor="middle">
+<tspan x="1875" dy="0">Local HTTP · live state and history</tspan>
+</text>
+<polyline points="1180,909 1180,823 1620,823 1620,799" fill="none" stroke="#95531b" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#pending)" marker-start="url(#pending)" stroke-dasharray="9 7"/>
+<text x="1374" y="848" class="pending-label" text-anchor="middle">
+<tspan x="1374" dy="0">GET /api/latest ⇄ sensor snapshot</tspan>
+</text>
+<polyline points="850,909 850,799" fill="none" stroke="#95531b" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#pending)" stroke-dasharray="9 7"/>
+<text x="850" y="867" class="pending-label" text-anchor="middle">
+<tspan x="850" dy="0">POST fresh mapped bay readings</tspan>
+</text>
+<rect x="35" y="1155" width="2130" height="453" rx="16" fill="#e9eff5" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="155" y="1195" class="section" text-anchor="start">
+<tspan x="155" dy="0">FIELD HARDWARE  ·  LOCAL WI-FI AND WIRES</tspan>
+</text>
+<rect x="62" y="1258" width="345" height="145" rx="16" fill="#e7f0ff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="83" y="1292" class="head" text-anchor="start">
+<tspan x="83" dy="0">Entrance ESP32-CAM</tspan>
+</text>
+<text x="83" y="1324" class="body" text-anchor="start">
+<tspan x="83" dy="0">OV2640 supplies a JPEG still.</tspan>
+<tspan x="83" dy="25">HTTP /capture over local Wi-Fi</tspan>
+<tspan x="83" dy="25">5 V USB via ESP32-CAM-MB</tspan>
+</text>
+<rect x="436" y="1258" width="345" height="145" rx="16" fill="#e7f0ff" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="457" y="1292" class="head" text-anchor="start">
+<tspan x="457" dy="0">Exit ESP32-CAM</tspan>
+</text>
+<text x="457" y="1324" class="body" text-anchor="start">
+<tspan x="457" dy="0">OV2640 supplies a JPEG still.</tspan>
+<tspan x="457" dy="25">HTTP /capture over local Wi-Fi</tspan>
+<tspan x="457" dy="25">5 V USB via ESP32-CAM-MB</tspan>
+</text>
+<rect x="808" y="1258" width="335" height="145" rx="16" fill="#fff1df" stroke="#bc8f61" stroke-width="1.5" stroke-dasharray="9 6"/>
+<text x="829" y="1292" class="head" text-anchor="start">
+<tspan x="829" dy="0">Future gate controller</tspan>
+</text>
+<text x="829" y="1324" class="small" text-anchor="start">
+<tspan x="829" dy="0">Arrival / departure trigger</tspan>
+<tspan x="829" dy="25">Gate command and acknowledgement</tspan>
+<tspan x="829" dy="25">Physical servo awaits integration.</tspan>
+</text>
+<rect x="1170" y="1258" width="273" height="145" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1191" y="1292" class="head" text-anchor="start">
+<tspan x="1191" dy="0">A1 ultrasonic</tspan>
+</text>
+<text x="1191" y="1324" class="small" text-anchor="start">
+<tspan x="1191" dy="0">HC-SR04 distance to obstacle</tspan>
+<tspan x="1191" dy="25">UNO D2 TRIG / D3 ECHO</tspan>
+<tspan x="1191" dy="25">Powered by UNO 5 V + GND</tspan>
+</text>
+<rect x="1470" y="1258" width="255" height="145" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1491" y="1292" class="head" text-anchor="start">
+<tspan x="1491" dy="0">Arduino UNO</tspan>
+</text>
+<text x="1491" y="1324" class="small" text-anchor="start">
+<tspan x="1491" dy="0">Measures echo pulse.</tspan>
+<tspan x="1491" dy="25">Computes A1 occupancy.</tspan>
+<tspan x="1491" dy="25">Sends UART telemetry.</tspan>
+</text>
+<rect x="1760" y="1258" width="377" height="145" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1781" y="1292" class="head" text-anchor="start">
+<tspan x="1781" dy="0">ESP32 sensor gateway</tspan>
+</text>
+<text x="1781" y="1324" class="small" text-anchor="start">
+<tspan x="1781" dy="0">UART RX GPIO25 · 9600 baud</tspan>
+<tspan x="1781" dy="25">Publishes UNO and environment JSON.</tspan>
+<tspan x="1781" dy="25">Wi-Fi uplink to Mosquitto :1883</tspan>
+</text>
+<rect x="1760" y="1460" width="377" height="115" rx="16" fill="#fff1df" stroke="#bacbdc" stroke-width="1.5"/>
+<text x="1781" y="1494" class="head" text-anchor="start">
+<tspan x="1781" dy="0">Environmental sensors</tspan>
+</text>
+<text x="1781" y="1526" class="small" text-anchor="start">
+<tspan x="1781" dy="0">DHT22 GPIO4 · LDR GPIO34 · MQ-2 GPIO35</tspan>
+<tspan x="1781" dy="25">Temperature/humidity, light and gas raw ADC</tspan>
+</text>
+<polyline points="97,798 97,1257" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<polyline points="125,798 125,1109 607,1109 607,1257" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<text x="345" y="1102" class="label" text-anchor="middle">
+<tspan x="345" dy="0">Mac sends GET /capture · Cameras return JPEG</tspan>
+</text>
+<polyline points="1443,1330 1469,1330" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<polyline points="1725,1330 1759,1330" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="1470" y="1441" class="small" text-anchor="start">
+<tspan x="1470" dy="0">UNO D11 TX → level divider → GPIO25 RX · common GND</tspan>
+</text>
+<polyline points="1960,1460 1960,1404" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="2110,1258 2110,1122 2153,1122 2153,744 1350,744 1350,728" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="1895" y="1117" class="label" text-anchor="middle">
+<tspan x="1895" dy="0">MQTT · parking/node/telemetry + parking/gateway/telemetry</tspan>
+</text>
+<polyline points="720,798 720,1135 975,1135 975,1257" fill="none" stroke="#95531b" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#pending)" marker-start="url(#pending)" stroke-dasharray="9 7"/>
+<text x="956" y="1130" class="pending-label" text-anchor="middle">
+<tspan x="956" dy="0">Future trigger ⇄ gate command / ack</tspan>
+</text>
+<text x="60" y="1475" class="head" text-anchor="start">
+<tspan x="60" dy="0">Current physical bay coverage</tspan>
+</text>
+<text x="60" y="1508" class="body" text-anchor="start">
+<tspan x="60" dy="0">A1 is installed. M1 and vibration are pending.</tspan>
+<tspan x="60" dy="27">Five monitored bays require more channels and verified bay mapping.</tspan>
+<tspan x="60" dy="27">The LCD and servo are reserved for later hardware work.</tspan>
+</text>
+</svg>

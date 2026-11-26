@@ -5,7 +5,8 @@ from typing import Any
 
 import numpy as np
 
-from .ocr_reader import EasyOCRReader
+from .ocr_reader import OCRReader
+from .paddleocr_reader import PaddleOCRReader
 from .plate_pipeline import PlatePipeline
 from .schemas import BBox, OCRResult, PipelineResult
 from .vehicle_detector import GeminiVehicleDetector
@@ -16,11 +17,11 @@ class ParkingAIPipeline:
         self,
         vehicle_detector: GeminiVehicleDetector | None = None,
         plate_pipeline: PlatePipeline | None = None,
-        ocr_reader: EasyOCRReader | None = None,
+        ocr_reader: OCRReader | None = None,
     ) -> None:
         self.vehicle_detector = vehicle_detector or GeminiVehicleDetector()
         self.plate_pipeline = plate_pipeline or PlatePipeline()
-        self.ocr_reader = ocr_reader or EasyOCRReader()
+        self.ocr_reader = ocr_reader or PaddleOCRReader()
 
     def run(
         self,
@@ -38,7 +39,10 @@ class ParkingAIPipeline:
             plate_bbox = vehicle.plate_bbox
         plate = self.plate_pipeline.extract(image, plate_bbox)
         if plate.image is None:
-            ocr = OCRResult(bbox=plate.bbox, error=plate.error, status="needs_review")
+            ocr = OCRResult(
+                bbox=plate.bbox, error=plate.error, status="needs_review",
+                engine=getattr(self.ocr_reader, "engine", "paddleocr-v5-th"),
+            )
         else:
             ocr = self.ocr_reader.read(plate.image, plate.bbox)
         ocr.processing_ms = (perf_counter() - plate_started) * 1000

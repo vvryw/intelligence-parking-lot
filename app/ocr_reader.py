@@ -4,7 +4,7 @@ import os
 import unicodedata
 from threading import Lock
 from time import perf_counter
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -20,8 +20,18 @@ def normalize_plate_text(text: str) -> str | None:
     return normalized or None
 
 
+class OCRReader(Protocol):
+    engine: str
+
+    def warm_up(self) -> None: ...
+
+    def read(self, image: np.ndarray, bbox: BBox | None) -> OCRResult: ...
+
+
 class EasyOCRReader:
     """Local Thai/English OCR; load and reuse one CPU reader on first use."""
+
+    engine = "easyocr"
 
     def __init__(self, reader: Any = None, min_confidence: float | None = None) -> None:
         self._reader = reader
@@ -36,7 +46,7 @@ class EasyOCRReader:
             try:
                 import easyocr
             except ImportError as exc:
-                raise RuntimeError("EasyOCR is not installed; install requirements.txt") from exc
+                raise RuntimeError("EasyOCR is not installed; install requirements-ocr-compare.txt") from exc
             self._reader = easyocr.Reader(["th", "en"], gpu=False, verbose=False)
 
     def warm_up(self) -> None:

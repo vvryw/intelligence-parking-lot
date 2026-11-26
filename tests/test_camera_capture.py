@@ -54,9 +54,9 @@ def test_camera_timeout_is_actionable(monkeypatch):
         fetch_camera_image("http://camera.test/capture")
 
 
-def test_camera_frames_default_to_corrected_horizontal_orientation(monkeypatch):
+def test_camera_frames_default_to_upside_down_orientation(monkeypatch):
     sensor_frame = np.zeros((12, 24, 3), dtype=np.uint8)
-    sensor_frame[:, :8] = (255, 0, 0)
+    sensor_frame[:4, :8] = (255, 0, 0)
     encoded, png = cv2.imencode(".png", sensor_frame)
     assert encoded
 
@@ -68,10 +68,10 @@ def test_camera_frames_default_to_corrected_horizontal_orientation(monkeypatch):
 
     monkeypatch.setattr(httpx, "get", camera_get)
     image, _ = fetch_camera_image("http://camera.test/capture")
-    np.testing.assert_array_equal(image, sensor_frame[:, ::-1])
+    np.testing.assert_array_equal(image, sensor_frame[::-1, ::-1])
 
 
-def test_entrance_rotates_both_axes_without_changing_exit(monkeypatch):
+def test_both_views_turn_upside_down_and_exit_also_mirrors(monkeypatch):
     entrance = "http://entrance.test/capture"
     exit_url = "http://exit.test/capture"
     monkeypatch.setenv("ESP32_ENTRANCE_CAPTURE_URL", entrance)
@@ -84,11 +84,13 @@ def test_entrance_rotates_both_axes_without_changing_exit(monkeypatch):
         return httpx.Response(200, content=png.tobytes(), headers={"content-type": "image/png"}, request=httpx.Request("GET", url))
 
     monkeypatch.setattr(httpx, "get", get)
-    original_corrected_view = sensor_frame[:, ::-1]
+    previous_entrance_view = sensor_frame[::-1, :]
+    previous_exit_view = sensor_frame[:, ::-1]
     incoming, _ = fetch_camera_image(entrance)
     outgoing, _ = fetch_camera_image(exit_url)
-    np.testing.assert_array_equal(incoming, original_corrected_view[::-1, ::-1])
-    np.testing.assert_array_equal(outgoing, original_corrected_view)
+    np.testing.assert_array_equal(incoming, previous_entrance_view[::-1, ::-1])
+    # Rotate the previous exit view 180 degrees, then mirror it horizontally.
+    np.testing.assert_array_equal(outgoing, previous_exit_view[::-1, ::-1][:, ::-1])
 
 
 def test_camera_rejects_webpage_instead_of_capture(monkeypatch):
@@ -188,7 +190,7 @@ def test_web_captures_once_then_classifies_and_reads_only_the_selected_plate(mon
 
     def read_plate(crop, bbox):
         calls.append("easyocr")
-        assert crop.shape == (120, 480)
+        assert crop.shape == (140, 500)
         assert bbox == (10, 30, 90, 50)
         return OCRResult(text="กข1234", confidence=0.9, status="success")
 

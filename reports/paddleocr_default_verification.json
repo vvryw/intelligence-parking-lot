@@ -1,0 +1,82 @@
+[
+  {
+    "camera": "entrance",
+    "sample_id": "red_thai",
+    "expected": "จม835",
+    "text": "จม835",
+    "engine": "paddleocr-v5-th",
+    "status": "success",
+    "correct": true,
+    "ocr_ms": 435.2
+  },
+  {
+    "camera": "entrance",
+    "sample_id": "black_english",
+    "expected": "ME204",
+    "text": "ME204",
+    "engine": "paddleocr-v5-th",
+    "status": "success",
+    "correct": true,
+    "ocr_ms": 45.8
+  },
+  {
+    "camera": "entrance",
+    "sample_id": "yellow_near",
+    "expected": "AB385",
+    "text": null,
+    "engine": "paddleocr-v5-th",
+    "status": "needs_review",
+    "correct": false,
+    "ocr_ms": 36.3
+  },
+  {
+    "camera": "entrance",
+    "sample_id": "yellow_far",
+    "expected": "AB385",
+    "text": "AB385",
+    "engine": "paddleocr-v5-th",
+    "status": "success",
+    "correct": true,
+    "ocr_ms": 54.3
+  },
+  {
+    "camera": "exit",
+    "sample_id": "red_thai",
+    "expected": "จม835",
+    "text": "จม835",
+    "engine": "paddleocr-v5-th",
+    "status": "success",
+    "correct": true,
+    "ocr_ms": 50.5
+  },
+  {
+    "camera": "exit",
+    "sample_id": "black_english",
+    "expected": "ME204",
+    "text": "ME204",
+    "engine": "paddleocr-v5-th",
+    "status": "success",
+    "correct": true,
+    "ocr_ms": 45.1
+  },
+  {
+    "camera": "exit",
+    "sample_id": "yellow_near",
+    "expected": "AB385",
+    "text": null,
+    "engine": "paddleocr-v5-th",
+    "status": "needs_review",
+    "correct": false,
+    "ocr_ms": 38.0
+  },
+  {
+    "camera": "exit",
+    "sample_id": "yellow_far",
+    "expected": "AB385",
+    "text": "AB385",
+    "engine": "paddleocr-v5-th",
+    "status": "success",
+    "correct": true,
+    "ocr_ms": 47.3
+  }
+]

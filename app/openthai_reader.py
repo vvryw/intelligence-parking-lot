@@ -21,6 +21,8 @@ DEFAULT_MODEL_DIR = Path(__file__).resolve().parents[1] / "models/openthai-ocr-t
 class OpenThaiOCRReader:
     """Pinned OpenThai OCR Text 2.0.0, using ONNX Runtime on CPU."""
 
+    engine = "openthai-2.0.0"
+
     def __init__(self, reader: Any = None, model_dir: Path | None = None) -> None:
         self._reader = reader
         self.model_dir = Path(model_dir or os.getenv("OPENTHAI_MODEL_DIR", str(DEFAULT_MODEL_DIR)))

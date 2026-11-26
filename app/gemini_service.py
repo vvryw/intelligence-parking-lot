@@ -4,6 +4,7 @@ import json
 import os
 from base64 import b64encode
 from pathlib import Path
+from threading import Lock
 from typing import Any, Callable
 
 import cv2
@@ -15,10 +16,12 @@ from dotenv import load_dotenv
 # the process environment (for example, CI or a PowerShell $env: assignment).
 load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 
-DEFAULT_GEMINI_MODEL = "gemini-4-hydrogen"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash-lite"
 FALLBACK_GEMINI_MODEL = "gemini-3.1-flash-lite"
-ENTRANCE_ATTEMPT_TIMEOUT_SECONDS = 8.0
+PRIMARY_ATTEMPT_TIMEOUT_SECONDS = 8.0
+FALLBACK_ATTEMPT_TIMEOUT_SECONDS = 15.0
 GEMINI_INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions"
+TEMPORARY_GEMINI_STATUSES = {408, 429, 500, 502, 503, 504}
 THINKING_LEVELS = {
     "gemini-4-hydrogen": "low",
     "gemini-3.8-flash": "low",
@@ -57,6 +60,8 @@ class GeminiJSONService:
         )
         self._generate = generate
         self._client = httpx.Client()
+        self._key_lock = Lock()
+        self._next_key_index = 0
 
     def analyze(
         self, image: np.ndarray, prompt: str, response_schema: dict[str, Any]
@@ -72,7 +77,6 @@ class GeminiJSONService:
         api_key = os.getenv("GEMINI_API_KEY", "").strip()
         if not api_key:
             raise GeminiServiceError("GEMINI_API_KEY is not configured")
-        use_fallback = self.model == DEFAULT_GEMINI_MODEL
         encoded, buffer = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not encoded:
             raise GeminiServiceError("Could not encode image for Gemini")
@@ -92,29 +96,39 @@ class GeminiJSONService:
                 "schema": response_schema,
             },
         }
-        timeout = (
-            min(self.timeout_seconds, ENTRANCE_ATTEMPT_TIMEOUT_SECONDS)
-            if use_fallback else self.timeout_seconds
+        attempts = [(self.model, self.timeout_seconds)]
+        # Existing Hydrogen configurations keep the bounded fallback path.
+        if self.model in {DEFAULT_GEMINI_MODEL, "gemini-4-hydrogen"}:
+            attempts = [
+                (self.model, min(self.timeout_seconds, PRIMARY_ATTEMPT_TIMEOUT_SECONDS)),
+                (FALLBACK_GEMINI_MODEL, min(self.timeout_seconds, FALLBACK_ATTEMPT_TIMEOUT_SECONDS)),
+            ]
+        configured_keys = (
+            api_key,
+            os.getenv("GEMINI_API_KEY_SECONDARY", "").strip(),
+            os.getenv("GEMINI_API_KEY_TERTIARY", "").strip(),
         )
+        api_keys = tuple(dict.fromkeys(key for key in configured_keys if key))
+        # Select once per capture so a fallback does not advance the rotation.
+        with self._key_lock:
+            api_key = api_keys[self._next_key_index % len(api_keys)]
+            self._next_key_index += 1
 
-        model = self.model
-        try:
+        failures = []
+        for model, timeout in attempts:
             try:
-                payload = self._request_json(model, request, api_key, timeout)
-            except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
-                status = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None
-                temporary_error = status is None or status in (
-                    408, 429, 500, 502, 503, 504,
-                )
-                if not use_fallback or not temporary_error:
-                    raise
-                model = FALLBACK_GEMINI_MODEL
-                payload = self._request_json(model, request, api_key, timeout)
-        except GeminiServiceError:
-            raise
-        except Exception as exc:
-            raise GeminiServiceError(f"Gemini request failed: {exc}") from exc
-        return payload, model
+                return self._request_json(model, request, api_key, timeout), model
+            except httpx.TimeoutException:
+                failures.append(f"{model} timed out")
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                failures.append(f"{model} returned HTTP {status} ({exc.response.reason_phrase})")
+                if status not in TEMPORARY_GEMINI_STATUSES:
+                    break
+            except Exception as exc:
+                failures.append(f"{model}: {exc}")
+                break
+        raise GeminiServiceError(". ".join(failures))
 
     def _request_json(
         self, model: str, request: dict[str, Any], api_key: str, timeout: float

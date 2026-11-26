@@ -7,6 +7,7 @@ import numpy as np
 
 from .ocr_reader import EasyOCRReader, normalize_plate_text
 from .openthai_reader import OpenThaiOCRReader
+from .paddleocr_reader import PaddleOCRReader
 from .schemas import BBox
 
 
@@ -31,22 +32,25 @@ def score_text(expected: str, predicted: str | None) -> dict:
 
 
 class OCRComparison:
-    def __init__(self, easyocr: EasyOCRReader, openthai: OpenThaiOCRReader | None = None) -> None:
+    def __init__(self, easyocr: EasyOCRReader, openthai: OpenThaiOCRReader | None = None, paddle: PaddleOCRReader | None = None) -> None:
         self.readers = (easyocr, openthai or OpenThaiOCRReader())
+        self.paddle = paddle or PaddleOCRReader()
 
-    def compare(self, image: np.ndarray, bbox: BBox | None, expected: str | None = None) -> list[dict]:
+    def compare(self, image: np.ndarray, bbox: BBox | None, expected: str | None = None, *, include_paddle: bool = False) -> list[dict]:
         if expected:
             score_text(expected, None)  # Validate before doing inference.
         results = []
         # Sequential inference avoids the two engines competing for CPU.
-        for reader in self.readers:
+        readers = self.readers + (self.paddle,) if include_paddle else self.readers
+        for reader in readers:
             started = perf_counter()
             try:
                 reader.warm_up()
                 load_ms = (perf_counter() - started) * 1000
                 result = asdict(reader.read(image, bbox))
             except Exception as exc:
-                result = {"engine": "easyocr" if isinstance(reader, EasyOCRReader) else "openthai-2.0.0",
+                engine = getattr(reader, "engine", "easyocr" if isinstance(reader, EasyOCRReader) else "openthai-2.0.0")
+                result = {"engine": engine,
                           "text": None, "confidence": None, "status": "failed", "error": str(exc),
                           "processing_ms": None}
                 load_ms = (perf_counter() - started) * 1000

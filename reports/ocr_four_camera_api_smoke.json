@@ -1,0 +1,77 @@
+{
+  "camera": "entrance",
+  "bbox": [
+    293,
+    557,
+    503,
+    628
+  ],
+  "preprocess_ms": 14.5,
+  "results": [
+    {
+      "text": "จมอวร",
+      "confidence": 0.11631345770635085,
+      "bbox": [
+        293,
+        557,
+        503,
+        628
+      ],
+      "engine": "easyocr",
+      "processing_ms": 313.16312499984633,
+      "status": "needs_review",
+      "error": "EasyOCR found no readable text or confidence is below the review threshold",
+      "model_ready_ms": 4571.9,
+      "score": {
+        "expected": "จม835",
+        "exact_match": false,
+        "character_errors": 3,
+        "cer": 0.6
+      }
+    },
+    {
+      "text": "จุม835",
+      "confidence": 0.8416,
+      "bbox": [
+        293,
+        557,
+        503,
+        628
+      ],
+      "engine": "openthai-2.0.0",
+      "processing_ms": 126.10087500070222,
+      "status": "success",
+      "error": null,
+      "model_ready_ms": 185.7,
+      "score": {
+        "expected": "จม835",
+        "exact_match": false,
+        "character_errors": 1,
+        "cer": 0.2
+      }
+    },
+    {
+      "text": "จม835",
+      "confidence": 0.86785,
+      "bbox": [
+        293,
+        557,
+        503,
+        628
+      ],
+      "engine": "paddleocr-v5-th",
+      "processing_ms": 54.17970799317118,
+      "status": "success",
+      "error": null,
+      "model_ready_ms": 381.8,
+      "score": {
+        "expected": "จม835",
+        "exact_match": true,
+        "character_errors": 0,
+        "cer": 0.0
+      }
+    }
+  ],
+  "input_variant": "enhanced",
+  "note": "Same crop; sequential local reads. OCR time excludes model loading and image preparation. Confidence values are not comparable between engines."
+}

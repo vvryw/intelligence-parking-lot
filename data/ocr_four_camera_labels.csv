@@ -1,0 +1,5 @@
+id,filename,group,expected,bbox,reference_status
+red_thai,red_thai.png,thai-registration,จม835,"293,557,503,628",user-confirmed
+black_english,black_english.png,english-registration,ME204,"225,537,500,623",user-confirmed
+yellow_near,yellow_near.png,english-registration,AB385,"214,319,537,489",user-confirmed
+yellow_far,yellow_far.png,english-registration,AB385,"483,200,759,285",user-confirmed

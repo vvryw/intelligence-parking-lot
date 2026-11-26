@@ -18,6 +18,17 @@
     <h1>Camera test</h1>
     <p class="intro">Check the live view, then trigger a capture when a vehicle is in frame.</p>
 
+    <section class="panel parking-panel" aria-labelledby="parking-heading">
+      <header class="panel-header">
+        <div><h2 id="parking-heading">Parking lot</h2><p class="panel-note">VIP: sports cars and supercars. Normal: passenger cars only.</p></div>
+        <span id="parking-cloud" class="status" role="status">Connecting to database</span>
+      </header>
+      <div class="parking-summary"><strong>VIP available: <span id="vip-available">—</span> / 2</strong><strong>Normal available: <span id="normal-available">—</span> / 3</strong></div>
+      <div id="parking-spaces" class="parking-spaces" aria-live="polite"></div>
+      <p class="panel-note parking-note">Availability follows registered entries and exits. Connected bay sensors can also mark spaces unavailable.</p>
+      <p id="parking-gate" class="gate-state" role="status">Gate simulator · no physical gate commands</p>
+    </section>
+
     <div class="camera-grid">
       <section class="panel" aria-label="Entrance live camera">
         <header class="panel-header">
@@ -71,7 +82,7 @@
 
       <section class="panel capture-panel" aria-labelledby="capture-heading">
         <h2 id="capture-heading">Sensor test</h2>
-        <p class="capture-description">Entrance uses Gemini for vehicle type and local OCR for the plate. Exit reads the plate locally. You can also compare EasyOCR and OpenThai on a selected crop.</p>
+        <p class="capture-description">Entrance uses Gemini for vehicle type and PaddleOCR for the plate. Exit reads the plate locally with PaddleOCR. You can also compare the OCR models on a selected crop.</p>
         <button id="trigger" type="button">Simulate sensor alert</button>
         <label for="test-image" class="test-image-label">Or open a test photo</label>
         <input id="test-image" type="file" accept="image/*">
@@ -92,21 +103,24 @@
         <div class="result" aria-labelledby="plate-heading">
           <h3 id="plate-heading">License plate</h3>
           <button id="read-plate" class="secondary plate-action" type="button" disabled>Read selected plate</button>
-          <button id="compare-plate" class="secondary plate-action" type="button" disabled>Compare both OCR engines</button>
+          <button id="compare-plate" class="secondary plate-action" type="button" disabled>Compare OCR models</button>
           <label for="expected-plate">Correct plate text (optional, for scoring)</label>
           <input id="expected-plate" type="text" maxlength="80" placeholder="e.g. กห6000" autocomplete="off">
           <label class="enhance-option"><input id="enhance-comparison" type="checkbox" checked> Enhance crop for comparison</label>
+          <label class="enhance-option"><input id="include-paddle" type="checkbox" checked> Include PaddleOCR (Thai + English)</label>
           <p id="plate-status" class="capture-status" role="status">Capture a photo to find the license plate.</p>
           <img id="enhanced-plate" class="enhanced-plate" alt="Selected crop sent to OCR" hidden>
           <dl>
             <div><dt>Plate text</dt><dd id="plate">—</dd></div>
             <div><dt>Image enhancement</dt><dd id="enhancement-time">—</dd></div>
-            <div><dt>EasyOCR time</dt><dd id="ocr-time">—</dd></div>
+            <div><dt>PaddleOCR time</dt><dd id="ocr-time">—</dd></div>
           </dl>
           <p id="plate-error" class="capture-error" hidden></p>
+          <button id="register-parking" class="parking-register" type="button" disabled>Check gate &amp; register entry / exit</button>
+          <p id="parking-decision" class="capture-status" role="status">Analyze the photo, review the plate, then check the gate.</p>
           <div id="ocr-comparison" hidden>
             <h3>OCR comparison</h3>
-            <p class="panel-note">Both engines read the same crop. OCR time excludes model loading. A single photo is not an accuracy benchmark.</p>
+            <p class="panel-note">All selected models read the same crop. OCR time excludes model loading. A single photo is not an accuracy benchmark.</p>
             <div class="comparison-scroll">
               <table class="comparison-table">
                 <thead><tr><th>Engine</th><th>Text</th><th>OCR</th><th>Model ready</th><th>Score / status</th></tr></thead>
@@ -117,6 +131,12 @@
         </div>
       </section>
     </div>
+    <section class="panel parking-panel" aria-labelledby="visits-heading">
+      <header class="panel-header"><h2 id="visits-heading">Parking visits and photos</h2><button id="refresh-parking" class="secondary" type="button">Refresh</button></header>
+      <div class="parking-history"><table class="comparison-table"><thead><tr><th>Plate</th><th>Type / bay</th><th>Status</th><th>Entered</th><th>Exited</th><th>Photos</th></tr></thead><tbody id="parking-visits"></tbody></table></div>
+      <p id="parking-history-note" class="panel-note parking-note">No visits loaded.</p>
+      <div class="parking-history"><table class="comparison-table"><thead><tr><th>Time</th><th>Direction</th><th>Plate</th><th>Decision</th><th>Bay</th></tr></thead><tbody id="parking-events"></tbody></table></div>
+    </section>
   </main>
 </body>
 </html>

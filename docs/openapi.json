@@ -1,0 +1,909 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Intelligence Parking Lot Day 1 AI",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/camera/stream": {
+      "get": {
+        "summary": "Camera Stream",
+        "operationId": "camera_stream_camera_stream_get",
+        "parameters": [
+          {
+            "name": "camera",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "entrance",
+                "exit"
+              ],
+              "type": "string",
+              "default": "entrance",
+              "title": "Camera"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/camera/snapshot": {
+      "get": {
+        "summary": "Camera Snapshot",
+        "operationId": "camera_snapshot_camera_snapshot_get",
+        "parameters": [
+          {
+            "name": "camera",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "entrance",
+                "exit"
+              ],
+              "type": "string",
+              "default": "entrance",
+              "title": "Camera"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/status": {
+      "get": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "Status",
+        "operationId": "status_parking_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/history": {
+      "get": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "History",
+        "operationId": "history_parking_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/sensors": {
+      "post": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "Sensors",
+        "operationId": "sensors_parking_sensors_post",
+        "parameters": [
+          {
+            "name": "x-integration-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Integration-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorBatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/media/{media_id}": {
+      "get": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "Media",
+        "operationId": "media_parking_media__media_id__get",
+        "parameters": [
+          {
+            "name": "media_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Media Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/analyze": {
+      "post": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "Analyze",
+        "operationId": "analyze_parking_analyze_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_parking_analyze_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/commit": {
+      "post": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "Commit",
+        "operationId": "commit_parking_commit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/classify": {
+      "post": {
+        "summary": "Classify",
+        "operationId": "classify_classify_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_classify_classify_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Classify Classify Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plate/read": {
+      "post": {
+        "summary": "Plate Read",
+        "operationId": "plate_read_plate_read_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_plate_read_plate_read_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Plate Read Plate Read Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plate/compare": {
+      "post": {
+        "summary": "Plate Compare",
+        "operationId": "plate_compare_plate_compare_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_plate_compare_plate_compare_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Plate Compare Plate Compare Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/infer": {
+      "post": {
+        "summary": "Infer",
+        "operationId": "infer_infer_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_infer_infer_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Infer Infer Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capture": {
+      "post": {
+        "summary": "Capture",
+        "operationId": "capture_capture_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_capture_capture_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Capture Capture Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_analyze_parking_analyze_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "camera": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Camera",
+            "default": "entrance"
+          },
+          "plate_bbox": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate Bbox"
+          },
+          "previous_observation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Observation Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_analyze_parking_analyze_post"
+      },
+      "Body_capture_capture_post": {
+        "properties": {
+          "plate_bbox": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate Bbox"
+          },
+          "camera": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Camera",
+            "default": "entrance"
+          }
+        },
+        "type": "object",
+        "title": "Body_capture_capture_post"
+      },
+      "Body_classify_classify_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "camera": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Camera",
+            "default": "entrance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_classify_classify_post"
+      },
+      "Body_infer_infer_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "plate_bbox": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate Bbox"
+          },
+          "camera": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Camera",
+            "default": "entrance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_infer_infer_post"
+      },
+      "Body_plate_compare_plate_compare_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "plate_bbox": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Plate Bbox"
+          },
+          "camera": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Camera",
+            "default": "entrance"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected"
+          },
+          "enhance": {
+            "type": "boolean",
+            "title": "Enhance",
+            "default": true
+          },
+          "include_paddle": {
+            "type": "boolean",
+            "title": "Include Paddle",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "image",
+          "plate_bbox"
+        ],
+        "title": "Body_plate_compare_plate_compare_post"
+      },
+      "Body_plate_read_plate_read_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "plate_bbox": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate Bbox"
+          },
+          "camera": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Camera",
+            "default": "entrance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_plate_read_plate_read_post"
+      },
+      "CommitRequest": {
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Observation Id"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Request Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observation_id"
+        ],
+        "title": "CommitRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "SensorBatch": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Source"
+          },
+          "spaces": {
+            "items": {
+              "$ref": "#/components/schemas/SensorUpdate"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Spaces"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "spaces"
+        ],
+        "title": "SensorBatch"
+      },
+      "SensorUpdate": {
+        "properties": {
+          "space_id": {
+            "type": "string",
+            "enum": [
+              "VIP-1",
+              "VIP-2",
+              "NORMAL-1",
+              "NORMAL-2",
+              "NORMAL-3"
+            ],
+            "title": "Space Id"
+          },
+          "occupied": {
+            "type": "boolean",
+            "title": "Occupied"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Observed At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "space_id",
+          "occupied",
+          "observed_at"
+        ],
+        "title": "SensorUpdate"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
