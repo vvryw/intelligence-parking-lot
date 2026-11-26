@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 BBox = tuple[int, int, int, int]
 VehicleType = Literal["car", "sportcar", "supercar", "unknown"]
+VEHICLE_TYPES = get_args(VehicleType)
 ReviewStatus = Literal["success", "needs_review", "failed"]
+
+
+def normalize_vehicle_type(value: str) -> str:
+    label = value.strip().lower()
+    return "sportcar" if label in {"sports car", "sports_car", "sportscar"} else label
 
 
 def parse_bbox(value: str | None) -> BBox | None:
@@ -28,6 +34,8 @@ class VehicleResult:
     processing_ms: float = 0.0
     needs_review: bool = True
     error: str | None = None
+    plate_bbox: BBox | None = None
+    model: str | None = None
 
 
 @dataclass(slots=True)
@@ -44,15 +52,18 @@ class OCRResult:
 @dataclass(slots=True)
 class PipelineResult:
     image_id: str
-    vehicle: VehicleResult
+    vehicle: VehicleResult | None
     ocr: OCRResult
     total_ms: float
     errors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         status: ReviewStatus
-        needs_review = self.vehicle.needs_review or self.ocr.status != "success"
-        if self.vehicle.error and self.ocr.error:
+        vehicle = self.vehicle
+        needs_review = bool(vehicle and vehicle.needs_review) or self.ocr.status != "success"
+        if vehicle is None:
+            status = self.ocr.status
+        elif vehicle.error and self.ocr.error:
             status = "failed"
         elif needs_review:
             status = "needs_review"
@@ -61,9 +72,9 @@ class PipelineResult:
 
         result: dict[str, Any] = {
             "image_id": self.image_id,
-            "vehicle_type": self.vehicle.vehicle_type,
-            "vehicle_confidence": self.vehicle.confidence,
-            "vehicle_bbox": list(self.vehicle.bbox) if self.vehicle.bbox else None,
+            "vehicle_type": vehicle.vehicle_type if vehicle else None,
+            "vehicle_confidence": vehicle.confidence if vehicle else None,
+            "vehicle_bbox": list(vehicle.bbox) if vehicle and vehicle.bbox else None,
             "license_plate": self.ocr.text,
             "ocr_confidence": self.ocr.confidence,
             "plate_bbox": list(self.ocr.bbox) if self.ocr.bbox else None,
@@ -71,7 +82,7 @@ class PipelineResult:
             "status": status,
             "needs_review": needs_review,
             "processing_ms": {
-                "vehicle": round(self.vehicle.processing_ms, 3),
+                "vehicle": round(vehicle.processing_ms, 3) if vehicle else None,
                 "plate_and_ocr": round(self.ocr.processing_ms, 3),
                 "total": round(self.total_ms, 3),
             },

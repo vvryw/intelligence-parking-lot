@@ -16,6 +16,12 @@ data/samples/*
 reports/results.csv
 reports/day1_results.md
 models/
+.tools/
+camera/parking_camera/wifi_secrets.h
+camera/parking_camera/build/
+camera/parking_camera/*.bin
+camera/parking_camera/*.elf
+camera/parking_camera/*.map
 
 # Downloaded/exported AI model weights
 *.pt

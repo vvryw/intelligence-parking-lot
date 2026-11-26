@@ -1,0 +1,38 @@
+[
+  {
+    "method": "manual-reference",
+    "bbox": [
+      483,
+      200,
+      759,
+      285
+    ],
+    "ms": 0,
+    "iou": 1
+  },
+  {
+    "method": "opencv-heuristic",
+    "bbox": [
+      425,
+      30,
+      528,
+      80
+    ],
+    "ms": 7.7593749956577085,
+    "iou": 0.0,
+    "error": null
+  },
+  {
+    "method": "gemini",
+    "bbox": [
+      473,
+      167,
+      770,
+      295
+    ],
+    "ms": 66193.3013339949,
+    "iou": 0.6171085858585859,
+    "model": "gemini-3.6-flash",
+    "error": null
+  }
+]

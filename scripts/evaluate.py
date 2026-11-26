@@ -11,6 +11,7 @@ if __package__ in {None, ""}:
 from app.image_source import load_local_image
 from app.ocr_reader import normalize_plate_text
 from app.pipeline import ParkingAIPipeline
+from app.schemas import VEHICLE_TYPES, normalize_vehicle_type
 
 
 def main() -> int:
@@ -39,7 +40,7 @@ def main() -> int:
                 {
                     **truth,
                     "predicted_vehicle": result["vehicle_type"],
-                    "vehicle_correct": result["vehicle_type"] == truth["vehicle_type"],
+                    "vehicle_correct": result["vehicle_type"] == normalize_vehicle_type(truth["vehicle_type"]),
                     "predicted_plate": result["license_plate"] or "",
                     "plate_exact_match": result["license_plate"] == expected_plate,
                     "needs_review": result["needs_review"],
@@ -56,8 +57,10 @@ def main() -> int:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+    known_vehicle_types = set(VEHICLE_TYPES) - {"unknown"}
     vehicle_labeled = [
-        row for row in rows if row["vehicle_type"] in {"car", "sportcar", "supercar"}
+        row for row in rows
+        if normalize_vehicle_type(str(row["vehicle_type"])) in known_vehicle_types
     ]
     plate_labeled = [row for row in rows if normalize_plate_text(str(row["plate"]))]
     vehicle_correct = sum(row["vehicle_correct"] is True for row in vehicle_labeled)

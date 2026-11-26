@@ -1,0 +1,208 @@
+{
+  "metadata": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "python": "3.11.14",
+    "versions": {
+      "easyocr": "1.7.2",
+      "torch": "2.15.0",
+      "onnxruntime": "1.32.0",
+      "numpy": "2.4.6"
+    },
+    "openthai_revision": "0fca92b87621f063f22c8de4d91460fb79f0e207",
+    "inference_threads_per_engine": 1,
+    "repeats": 5,
+    "original_photos": 1,
+    "labeled_crops": 1,
+    "model_startup": {
+      "easyocr": {
+        "model_ready_ms": 4616.286332995514,
+        "first_inference_ms": 340.20658399822423
+      },
+      "openthai-2.0.0": {
+        "model_ready_ms": 67.58445800369373,
+        "first_inference_ms": 131.898708998051
+      }
+    }
+  },
+  "summary": [
+    {
+      "group": "english-camera-registration",
+      "variant": "raw",
+      "engine": "easyocr",
+      "samples": 1,
+      "exact_matches": 0,
+      "cer": 1.0,
+      "median_ms": 266.5183750068536,
+      "p95_ms": 343.1015419977484,
+      "failed_runs": 0
+    },
+    {
+      "group": "english-camera-registration",
+      "variant": "raw",
+      "engine": "openthai-2.0.0",
+      "samples": 1,
+      "exact_matches": 0,
+      "cer": 1.0,
+      "median_ms": 128.70575000124518,
+      "p95_ms": 150.86929199896986,
+      "failed_runs": 0
+    },
+    {
+      "group": "english-camera-registration",
+      "variant": "enhanced",
+      "engine": "easyocr",
+      "samples": 1,
+      "exact_matches": 0,
+      "cer": 1.0,
+      "median_ms": 258.41108400345547,
+      "p95_ms": 301.5736253975774,
+      "failed_runs": 0
+    },
+    {
+      "group": "english-camera-registration",
+      "variant": "enhanced",
+      "engine": "openthai-2.0.0",
+      "samples": 1,
+      "exact_matches": 0,
+      "cer": 1.0,
+      "median_ms": 112.71625000517815,
+      "p95_ms": 114.27530000073602,
+      "failed_runs": 0
+    }
+  ],
+  "samples": [
+    {
+      "id": "english_camera_07",
+      "filename": "photo_07_camera.png",
+      "group": "english-camera-registration",
+      "expected": "AB385",
+      "bbox": "174,470,551,602",
+      "engine": "easyocr",
+      "variant": "raw",
+      "input_width": 377,
+      "input_height": 132,
+      "ocr_width": 377,
+      "ocr_height": 132,
+      "preprocess_ms": 0.0002079978003166616,
+      "predicted": "มะ",
+      "score": {
+        "expected": "AB385",
+        "exact_match": false,
+        "character_errors": 5,
+        "cer": 1.0
+      },
+      "outputs_consistent": true,
+      "failed_runs": 0,
+      "latencies_ms": [
+        358.4454169977107,
+        281.7260419978993,
+        266.5183750068536,
+        252.1024160014349,
+        250.04899999476038
+      ],
+      "status": "needs_review",
+      "confidence": 0.05726666181082972,
+      "error": "EasyOCR found no readable text or confidence is below the review threshold"
+    },
+    {
+      "id": "english_camera_07",
+      "filename": "photo_07_camera.png",
+      "group": "english-camera-registration",
+      "expected": "AB385",
+      "bbox": "174,470,551,602",
+      "engine": "openthai-2.0.0",
+      "variant": "raw",
+      "input_width": 377,
+      "input_height": 132,
+      "ocr_width": 377,
+      "ocr_height": 132,
+      "preprocess_ms": 0.0002079978003166616,
+      "predicted": null,
+      "score": {
+        "expected": "AB385",
+        "exact_match": false,
+        "character_errors": 5,
+        "cer": 1.0
+      },
+      "outputs_consistent": true,
+      "failed_runs": 0,
+      "latencies_ms": [
+        155.6405419978546,
+        131.7842920034309,
+        126.4156670004013,
+        124.42504100181395,
+        128.70575000124518
+      ],
+      "status": "needs_review",
+      "confidence": null,
+      "error": "OpenThai found no readable text or confidence is below the review threshold"
+    },
+    {
+      "id": "english_camera_07",
+      "filename": "photo_07_camera.png",
+      "group": "english-camera-registration",
+      "expected": "AB385",
+      "bbox": "174,470,551,602",
+      "engine": "easyocr",
+      "variant": "enhanced",
+      "input_width": 377,
+      "input_height": 132,
+      "ocr_width": 480,
+      "ocr_height": 168,
+      "preprocess_ms": 40.686082997126505,
+      "predicted": "ง",
+      "score": {
+        "expected": "AB385",
+        "exact_match": false,
+        "character_errors": 5,
+        "cer": 1.0
+      },
+      "outputs_consistent": true,
+      "failed_runs": 0,
+      "latencies_ms": [
+        311.72241699823644,
+        260.9784589949413,
+        258.41108400345547,
+        256.74000000435626,
+        256.7070410004817
+      ],
+      "status": "needs_review",
+      "confidence": 0.09148249323800783,
+      "error": "EasyOCR found no readable text or confidence is below the review threshold"
+    },
+    {
+      "id": "english_camera_07",
+      "filename": "photo_07_camera.png",
+      "group": "english-camera-registration",
+      "expected": "AB385",
+      "bbox": "174,470,551,602",
+      "engine": "openthai-2.0.0",
+      "variant": "enhanced",
+      "input_width": 377,
+      "input_height": 132,
+      "ocr_width": 480,
+      "ocr_height": 168,
+      "preprocess_ms": 40.686082997126505,
+      "predicted": null,
+      "score": {
+        "expected": "AB385",
+        "exact_match": false,
+        "character_errors": 5,
+        "cer": 1.0
+      },
+      "outputs_consistent": true,
+      "failed_runs": 0,
+      "latencies_ms": [
+        114.61050000070827,
+        112.71625000517815,
+        111.54712500137975,
+        111.88337500061607,
+        112.93450000084704
+      ],
+      "status": "needs_review",
+      "confidence": null,
+      "error": "OpenThai found no readable text or confidence is below the review threshold"
+    }
+  ]
+}

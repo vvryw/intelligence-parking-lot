@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 
-from .image_source import ImageSourceError, fetch_camera_image, load_local_image
+from .image_source import ImageSourceError, fetch_camera_image, load_local_image, save_image
 from .pipeline import ParkingAIPipeline
 from .schemas import parse_bbox
+from .cameras import CAMERA_LABELS, camera_url
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -21,23 +21,42 @@ def build_parser() -> argparse.ArgumentParser:
         help="ESP32 capture URL; defaults to ESP32_CAPTURE_URL",
     )
     parser.add_argument("--plate-bbox", help="Manual plate crop in original-image x1,y1,x2,y2")
+    parser.add_argument("--camera", choices=CAMERA_LABELS, default="entrance", help="Entrance uses Gemini and OCR. Exit uses local OCR.")
+    parser.add_argument(
+        "--capture-only",
+        metavar="OUTPUT",
+        help="Save a camera JPEG/PNG and exit without Gemini or OCR (requires --camera-url)",
+    )
     return parser
 
 
 def main() -> int:
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.capture_only and (args.image or args.plate_bbox):
+        parser.error("--capture-only requires --camera-url and cannot be combined with --plate-bbox")
     try:
         if args.image:
             image, image_id = load_local_image(args.image)
         else:
-            camera_url = args.camera_url or os.getenv("ESP32_CAPTURE_URL", "")
-            if not camera_url:
+            source_url = args.camera_url or camera_url(args.camera)
+            if not source_url:
                 raise ImageSourceError("Provide --camera-url URL or set ESP32_CAPTURE_URL")
-            image, image_id = fetch_camera_image(camera_url)
+            image, image_id = fetch_camera_image(source_url)
+        if args.capture_only:
+            destination = save_image(image, args.capture_only)
+            print(json.dumps({
+                "status": "captured",
+                "path": str(destination),
+                "width": image.shape[1],
+                "height": image.shape[0],
+            }, indent=2))
+            return 0
         result = ParkingAIPipeline().run(
             image,
             image_id,
             parse_bbox(args.plate_bbox),
+            classify_vehicle=args.camera == "entrance",
         )
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
         return 0

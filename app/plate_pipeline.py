@@ -18,8 +18,10 @@ class PlateCrop:
 
 def _clip_bbox(bbox: BBox, width: int, height: int) -> BBox | None:
     x1, y1, x2, y2 = bbox
-    x1, x2 = sorted((max(0, x1), min(width, x2)))
-    y1, y2 = sorted((max(0, y1), min(height, y2)))
+    x1, x2 = sorted((x1, x2))
+    y1, y2 = sorted((y1, y2))
+    x1, x2 = max(0, x1), min(width, x2)
+    y1, y2 = max(0, y1), min(height, y2)
     if x2 <= x1 or y2 <= y1:
         return None
     return x1, y1, x2, y2
@@ -72,15 +74,18 @@ def locate_plate_heuristic(image: np.ndarray) -> PlateCrop:
 
 def preprocess_plate(crop: np.ndarray) -> np.ndarray:
     height, width = crop.shape[:2]
-    scale = max(1.0, 480.0 / max(width, 1))
+    scale = min(max(1.0, 480.0 / width), 960.0 / max(width, height))
     resized = cv2.resize(
-        crop,
+        cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY),
         (max(1, int(width * scale)), max(1, int(height * scale))),
-        interpolation=cv2.INTER_CUBIC,
+        interpolation=cv2.INTER_CUBIC if scale >= 1 else cv2.INTER_AREA,
     )
-    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-    denoised = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
-    return cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(denoised)
+    denoised = cv2.fastNlMeansDenoising(resized, None, 10, 7, 21)
+    contrasted = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(denoised)
+    softened = cv2.GaussianBlur(contrasted, (0, 0), sigmaX=0.9)
+    sharpened = cv2.addWeighted(contrasted, 1.25, softened, -0.25, 0)
+    # Widen the contrast around the midtones while preserving gray character edges.
+    return cv2.addWeighted(sharpened, 1.23, sharpened, 0.0, -24.0)
 
 
 class PlatePipeline:

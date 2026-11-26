@@ -1,12 +1,12 @@
-# Day 1 Gemini service evaluation template
+# Day 1 Gemini classification + EasyOCR evaluation template
 
 > Add real, authorized ESP32-CAM examples before recording results. Do not replace
-> Gemini failures with manual corrections in the measured output.
+> AI failures with manual corrections in the measured output.
 
 ## Environment
 
 - Date / operator:
-- Python and `google-genai` version:
+- Python, `google-genai`, EasyOCR, and PyTorch versions:
 - Gemini model and region/project configuration:
 - ESP32-CAM board / resolution / JPEG quality:
 - Capture distance and lighting:
@@ -14,19 +14,19 @@
 
 ## Quantitative results
 
-- Images and class distribution (`car`, `sportcar`, `supercar`, no/unknown):
+- Images and class distribution (`car` including sports cars, `supercar`, no/unknown):
 - Vehicle accuracy (correct / applicable labeled):
 - Vehicle `unknown` / review count:
 - Plate exact-match accuracy (exact normalized / readable labeled):
 - Plate review/failure rate:
 - Mean / median / p95 Gemini vehicle-service latency:
-- Mean / median / p95 plate-and-Gemini-OCR latency:
+- Mean / median / p95 plate-and-local-EasyOCR latency (note first model load):
 - Mean end-to-end processing latency and service cost/usage if available:
 - Sequential processing FPS (`1000 / total_ms`; excludes capture unless stated):
 
 ## Qualitative cases
 
-| Condition | File | Ground truth | Gemini output | Success/failure reason |
+| Condition | File | Ground truth | Pipeline output | Success/failure reason |
 |---|---|---|---|---|
 | Normal | | | | |
 | Dark | | | | |
@@ -41,5 +41,6 @@
 - Camera/Wi-Fi observations:
 - Cases needing manual plate bbox:
 - Gemini model/version limitations:
+- EasyOCR Thai/English model limitations:
 - Privacy/authorization review:
 

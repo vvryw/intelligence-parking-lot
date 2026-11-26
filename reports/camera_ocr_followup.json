@@ -1,0 +1,114 @@
+[
+  {
+    "camera": "entrance",
+    "bbox": [
+      168,
+      431,
+      561,
+      633
+    ],
+    "preprocess_ms": 0.0,
+    "results": [
+      {
+        "text": "ตะะ",
+        "confidence": 0.021299422665315412,
+        "bbox": [
+          168,
+          431,
+          561,
+          633
+        ],
+        "engine": "easyocr",
+        "processing_ms": 306.6642910052906,
+        "status": "needs_review",
+        "error": "EasyOCR found no readable text or confidence is below the review threshold",
+        "model_ready_ms": 4496.6,
+        "score": {
+          "expected": "AB385",
+          "exact_match": false,
+          "character_errors": 5,
+          "cer": 1.0
+        }
+      },
+      {
+        "text": null,
+        "confidence": null,
+        "bbox": [
+          168,
+          431,
+          561,
+          633
+        ],
+        "engine": "openthai-2.0.0",
+        "processing_ms": 162.48674999951618,
+        "status": "needs_review",
+        "error": "OpenThai found no readable text or confidence is below the review threshold",
+        "model_ready_ms": 170.1,
+        "score": {
+          "expected": "AB385",
+          "exact_match": false,
+          "character_errors": 5,
+          "cer": 1.0
+        }
+      }
+    ],
+    "input_variant": "raw",
+    "note": "Same crop; sequential local reads. OCR time excludes model loading and image preparation. Confidence values are not comparable between engines."
+  },
+  {
+    "camera": "entrance",
+    "bbox": [
+      168,
+      431,
+      561,
+      633
+    ],
+    "preprocess_ms": 59.4,
+    "results": [
+      {
+        "text": null,
+        "confidence": null,
+        "bbox": [
+          168,
+          431,
+          561,
+          633
+        ],
+        "engine": "easyocr",
+        "processing_ms": 282.7588329964783,
+        "status": "needs_review",
+        "error": "EasyOCR found no readable text or confidence is below the review threshold",
+        "model_ready_ms": 0.0,
+        "score": {
+          "expected": "AB385",
+          "exact_match": false,
+          "character_errors": 5,
+          "cer": 1.0
+        }
+      },
+      {
+        "text": null,
+        "confidence": null,
+        "bbox": [
+          168,
+          431,
+          561,
+          633
+        ],
+        "engine": "openthai-2.0.0",
+        "processing_ms": 149.634250003146,
+        "status": "needs_review",
+        "error": "OpenThai found no readable text or confidence is below the review threshold",
+        "model_ready_ms": 0.0,
+        "score": {
+          "expected": "AB385",
+          "exact_match": false,
+          "character_errors": 5,
+          "cer": 1.0
+        }
+      }
+    ],
+    "input_variant": "enhanced",
+    "note": "Same crop; sequential local reads. OCR time excludes model loading and image preparation. Confidence values are not comparable between engines."
+  }
+]

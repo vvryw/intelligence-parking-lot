@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Camera test · Parking AI</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/camera.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <span class="brand"><span class="brand-mark" aria-hidden="true">P</span> Parking AI</span>
+      <span class="device">ESP32-CAM</span>
+    </div>
+  </header>
+  <main class="wrap">
+    <h1>Camera test</h1>
+    <p class="intro">Check the live view, then trigger a capture when a vehicle is in frame.</p>
+
+    <div class="camera-grid">
+      <section class="panel" aria-label="Entrance live camera">
+        <header class="panel-header">
+          <h2>Entrance · Coming in</h2>
+          <span id="entrance-status" class="status" data-state="connecting" role="status">Connecting</span>
+        </header>
+        <div class="live-view">
+          <img id="entrance-preview" alt="Live entrance camera" hidden>
+          <span id="entrance-message">Waiting for Entrance…</span>
+        </div>
+      </section>
+      <section class="panel" aria-label="Exit live camera">
+        <header class="panel-header">
+          <h2>Exit · Going out</h2>
+          <span id="exit-status" class="status" data-state="connecting" role="status">Connecting</span>
+        </header>
+        <div class="live-view">
+          <img id="exit-preview" alt="Live exit camera" hidden>
+          <span id="exit-message">Waiting for Exit…</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="workspace">
+      <section class="panel" aria-label="Camera preview">
+        <header class="panel-header">
+          <div>
+            <label for="camera-select">Capture from</label>
+            <select id="camera-select" aria-label="Camera direction">
+              <option value="entrance">Entrance · Coming in</option>
+              <option value="exit">Exit · Going out</option>
+            </select>
+          </div>
+          <div class="preview-controls">
+            <span id="preview-status" class="status" role="status">No capture</span>
+            <button id="flip" class="secondary" type="button" aria-pressed="true">Flip left/right</button>
+          </div>
+        </header>
+        <div id="viewfinder" class="viewfinder">
+          <span id="preview-message">Select a camera and simulate an alert to take a photo.</span>
+          <div id="snapshot-stage" class="snapshot-stage" hidden>
+            <img id="snapshot" alt="Captured still. Drag around the license plate to select it." draggable="false">
+            <div id="plate-box" class="plate-box" aria-hidden="true" hidden></div>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <p id="preview-note" class="panel-note">Live views above stay on your local network.</p>
+          <button id="resume" class="secondary" type="button" hidden>Resume live view</button>
+        </div>
+      </section>
+
+      <section class="panel capture-panel" aria-labelledby="capture-heading">
+        <h2 id="capture-heading">Sensor test</h2>
+        <p class="capture-description">Entrance uses Gemini for vehicle type and local OCR for the plate. Exit reads the plate locally. You can also compare EasyOCR and OpenThai on a selected crop.</p>
+        <button id="trigger" type="button">Simulate sensor alert</button>
+        <label for="test-image" class="test-image-label">Or open a test photo</label>
+        <input id="test-image" type="file" accept="image/*">
+        <p id="capture-status" class="capture-status" role="status">Ready for a test.</p>
+
+        <div class="result" aria-labelledby="result-heading">
+          <h3 id="result-heading">Last capture</h3>
+          <dl>
+            <div><dt>Camera</dt><dd id="capture-camera">—</dd></div>
+            <div><dt>Vehicle</dt><dd id="vehicle">—</dd></div>
+            <div><dt>Gemini model</dt><dd id="model">—</dd></div>
+            <div><dt>Camera time</dt><dd id="camera-time">—</dd></div>
+            <div><dt>Gemini time</dt><dd id="gemini-time">—</dd></div>
+          </dl>
+          <p id="capture-error" class="capture-error" hidden></p>
+        </div>
+
+        <div class="result" aria-labelledby="plate-heading">
+          <h3 id="plate-heading">License plate</h3>
+          <button id="read-plate" class="secondary plate-action" type="button" disabled>Read selected plate</button>
+          <button id="compare-plate" class="secondary plate-action" type="button" disabled>Compare both OCR engines</button>
+          <label for="expected-plate">Correct plate text (optional, for scoring)</label>
+          <input id="expected-plate" type="text" maxlength="80" placeholder="e.g. กห6000" autocomplete="off">
+          <label class="enhance-option"><input id="enhance-comparison" type="checkbox" checked> Enhance crop for comparison</label>
+          <p id="plate-status" class="capture-status" role="status">Capture a photo to find the license plate.</p>
+          <img id="enhanced-plate" class="enhanced-plate" alt="Selected crop sent to OCR" hidden>
+          <dl>
+            <div><dt>Plate text</dt><dd id="plate">—</dd></div>
+            <div><dt>Image enhancement</dt><dd id="enhancement-time">—</dd></div>
+            <div><dt>EasyOCR time</dt><dd id="ocr-time">—</dd></div>
+          </dl>
+          <p id="plate-error" class="capture-error" hidden></p>
+          <div id="ocr-comparison" hidden>
+            <h3>OCR comparison</h3>
+            <p class="panel-note">Both engines read the same crop. OCR time excludes model loading. A single photo is not an accuracy benchmark.</p>
+            <div class="comparison-scroll">
+              <table class="comparison-table">
+                <thead><tr><th>Engine</th><th>Text</th><th>OCR</th><th>Model ready</th><th>Score / status</th></tr></thead>
+                <tbody id="ocr-comparison-rows"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

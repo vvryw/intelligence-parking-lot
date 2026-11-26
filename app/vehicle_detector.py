@@ -6,35 +6,45 @@ from time import perf_counter
 import numpy as np
 
 from .gemini_service import GeminiJSONService
-from .schemas import BBox, VehicleResult
+from .schemas import BBox, VEHICLE_TYPES, VehicleResult, normalize_vehicle_type
+
+NORMALIZED_BOX_SCHEMA = {
+    "anyOf": [
+        {
+            "type": "array",
+            "items": {"type": "integer", "minimum": 0, "maximum": 1000},
+            "minItems": 4,
+            "maxItems": 4,
+        },
+        {"type": "null"},
+    ]
+}
 
 VEHICLE_SCHEMA = {
     "type": "object",
     "properties": {
-        "vehicle_type": {"type": "string", "enum": ["car", "sportcar", "supercar", "unknown"]},
+        "vehicle_type": {"type": "string", "enum": list(VEHICLE_TYPES)},
         "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-        "bbox_1000": {
-            "anyOf": [
-                {
-                    "type": "array",
-                    "items": {"type": "integer", "minimum": 0, "maximum": 1000},
-                    "minItems": 4,
-                    "maxItems": 4,
-                },
-                {"type": "null"},
-            ]
-        },
+        "bbox_1000": NORMALIZED_BOX_SCHEMA,
+        "plate_bbox_1000": NORMALIZED_BOX_SCHEMA,
     },
-    "required": ["vehicle_type", "confidence", "bbox_1000"],
+    "required": ["vehicle_type", "confidence", "bbox_1000", "plate_bbox_1000"],
 }
 
-VEHICLE_PROMPT = """Analyze this parking-lot image. Classify the single dominant vehicle only as:
-- car: ordinary passenger car,
-- sportcar: performance-oriented sports car that is not an exotic supercar,
-- supercar: exotic/high-performance supercar,
-- unknown: no clear target vehicle, multiple competing vehicles, or insufficient visual evidence.
-Do not guess. Give your own confidence from 0 to 1. If one vehicle is clearly identifiable,
-return its bounding box as [y_min, x_min, y_max, x_max], normalized 0-1000; otherwise null."""
+VEHICLE_PROMPT = """Classify the single dominant vehicle from its visible design.
+If the subject is a scale model, classify the vehicle it represents.
+- car: ordinary passenger vehicle such as a sedan, hatchback, wagon, SUV, or family coupe.
+- sportcar: purpose-built sports car such as a Mazda MX-5, Toyota GR86, Ford Mustang, or Porsche 911 Carrera.
+  Look for a low, compact performance coupe or roadster. Sport trim on a family car is still car.
+- supercar: exotic high-performance car such as a Lamborghini Huracán, Ferrari 488, or McLaren 720S.
+  Look for distinctive exotic cues such as a very low wide body, cab-forward proportions, or large side intakes.
+- unknown: the target is unclear, there are several competing vehicles, the type is unsupported,
+  or the angle and blur hide the features needed to distinguish the classes.
+Ignore plate text and people when classifying. Give confidence from 0 to 1. Put a box around the vehicle
+in bbox_1000. In plate_bbox_1000, locate the registration characters on that vehicle's license plate.
+Draw a tight box that includes all registration characters with a little margin and excludes the province
+line when it is separate. Do not transcribe the text. Use null for an unclear or missing box.
+Return both boxes as [y_min, x_min, y_max, x_max] on a 0–1000 scale over the original image."""
 
 
 def _bbox_from_normalized(raw: object, image: np.ndarray) -> BBox | None:
@@ -50,10 +60,25 @@ def _bbox_from_normalized(raw: object, image: np.ndarray) -> BBox | None:
     return (x1, y1, x2, y2) if x2 > x1 and y2 > y1 else None
 
 
+def _usable_plate_bbox(raw: object, image: np.ndarray, vehicle_bbox: BBox | None) -> BBox | None:
+    plate = _bbox_from_normalized(raw, image)
+    if plate is None:
+        return None
+    x1, y1, x2, y2 = plate
+    if x2 - x1 < 8 or y2 - y1 < 6 or vehicle_bbox == plate:
+        return None
+    if vehicle_bbox:
+        left, top, right, bottom = vehicle_bbox
+        if not (left <= (x1 + x2) / 2 <= right and top <= (y1 + y2) / 2 <= bottom):
+            return None
+    height, width = image.shape[:2]
+    if (x2 - x1) * (y2 - y1) > width * height / 3:
+        return None
+    return plate
+
+
 class GeminiVehicleDetector:
     """Gemini classification; the service confidence is useful for review, not calibrated."""
-
-    allowed_types = {"car", "sportcar", "supercar", "unknown"}
 
     def __init__(self, service: GeminiJSONService | None = None, min_confidence: float | None = None) -> None:
         self.service = service or GeminiJSONService()
@@ -64,14 +89,15 @@ class GeminiVehicleDetector:
     def detect(self, image: np.ndarray) -> VehicleResult:
         started = perf_counter()
         try:
-            payload = self.service.analyze(image, VEHICLE_PROMPT, VEHICLE_SCHEMA)
-            vehicle_type = str(payload.get("vehicle_type", "unknown")).lower()
-            if vehicle_type not in self.allowed_types:
+            payload, model = self.service.analyze_with_model(image, VEHICLE_PROMPT, VEHICLE_SCHEMA)
+            vehicle_type = normalize_vehicle_type(str(payload.get("vehicle_type", "unknown")))
+            if vehicle_type not in VEHICLE_TYPES:
                 raise ValueError("Gemini returned an unsupported vehicle type")
             confidence = float(payload["confidence"])
             if not 0 <= confidence <= 1:
                 raise ValueError("Gemini confidence is outside 0..1")
             bbox = _bbox_from_normalized(payload.get("bbox_1000"), image)
+            plate_bbox = _usable_plate_bbox(payload.get("plate_bbox_1000"), image, bbox)
             needs_review = vehicle_type == "unknown" or confidence < self.min_confidence
             if needs_review:
                 return VehicleResult(
@@ -80,6 +106,8 @@ class GeminiVehicleDetector:
                     processing_ms=(perf_counter() - started) * 1000,
                     needs_review=True,
                     error="Gemini classification is unknown or below the review threshold",
+                    plate_bbox=plate_bbox,
+                    model=model,
                 )
             return VehicleResult(
                 vehicle_type=vehicle_type,  # type: ignore[arg-type]
@@ -87,6 +115,8 @@ class GeminiVehicleDetector:
                 bbox=bbox,
                 processing_ms=(perf_counter() - started) * 1000,
                 needs_review=False,
+                plate_bbox=plate_bbox,
+                model=model,
             )
         except Exception as exc:
             return VehicleResult(

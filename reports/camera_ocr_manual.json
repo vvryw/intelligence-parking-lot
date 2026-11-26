@@ -1,0 +1,55 @@
+{
+  "camera": "entrance",
+  "bbox": [
+    483,
+    200,
+    759,
+    285
+  ],
+  "preprocess_ms": 35.9,
+  "results": [
+    {
+      "text": "838",
+      "confidence": 0.4831424951553345,
+      "bbox": [
+        483,
+        200,
+        759,
+        285
+      ],
+      "engine": "easyocr",
+      "processing_ms": 340.0196250004228,
+      "status": "needs_review",
+      "error": "EasyOCR found no readable text or confidence is below the review threshold",
+      "model_ready_ms": 4979.3,
+      "score": {
+        "expected": "AB385",
+        "exact_match": false,
+        "character_errors": 3,
+        "cer": 0.6
+      }
+    },
+    {
+      "text": null,
+      "confidence": null,
+      "bbox": [
+        483,
+        200,
+        759,
+        285
+      ],
+      "engine": "openthai-2.0.0",
+      "processing_ms": 100.95274999912363,
+      "status": "needs_review",
+      "error": "OpenThai found no readable text or confidence is below the review threshold",
+      "model_ready_ms": 157.1,
+      "score": {
+        "expected": "AB385",
+        "exact_match": false,
+        "character_errors": 5,
+        "cer": 1.0
+      }
+    }
+  ],
+  "note": "Same enhanced crop; sequential local reads. OCR time excludes model loading and enhancement. Confidence values are not comparable between engines."
+}

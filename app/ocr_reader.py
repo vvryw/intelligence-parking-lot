@@ -2,27 +2,13 @@ from __future__ import annotations
 
 import os
 import unicodedata
+from threading import Lock
 from time import perf_counter
+from typing import Any
 
 import numpy as np
 
-from .gemini_service import GeminiJSONService
 from .schemas import BBox, OCRResult
-
-OCR_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "text": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-        "readable": {"type": "boolean"},
-    },
-    "required": ["text", "confidence", "readable"],
-}
-
-OCR_PROMPT = """Read the license plate text in this cropped image. Transcribe only characters
-that are visibly present, preserving Thai letters and numbers. Do not infer missing or blurred
-characters. If it is unreadable, return text null and readable false. Return confidence from 0 to 1
-for the transcription you supplied."""
 
 
 def normalize_plate_text(text: str) -> str | None:
@@ -34,30 +20,58 @@ def normalize_plate_text(text: str) -> str | None:
     return normalized or None
 
 
-class GeminiOCRReader:
-    def __init__(self, service: GeminiJSONService | None = None, min_confidence: float | None = None) -> None:
-        self.service = service or GeminiJSONService()
+class EasyOCRReader:
+    """Local Thai/English OCR; load and reuse one CPU reader on first use."""
+
+    def __init__(self, reader: Any = None, min_confidence: float | None = None) -> None:
+        self._reader = reader
+        # Retain custom thresholds from older .env files during migration.
         self.min_confidence = min_confidence if min_confidence is not None else float(
-            os.getenv("GEMINI_MIN_OCR_CONFIDENCE", "0.60")
+            os.getenv("EASYOCR_MIN_CONFIDENCE", os.getenv("GEMINI_MIN_OCR_CONFIDENCE", "0.60"))
         )
+        self._lock = Lock()
+
+    def _load_reader(self) -> None:
+        if self._reader is None:
+            try:
+                import easyocr
+            except ImportError as exc:
+                raise RuntimeError("EasyOCR is not installed; install requirements.txt") from exc
+            self._reader = easyocr.Reader(["th", "en"], gpu=False, verbose=False)
+
+    def warm_up(self) -> None:
+        with self._lock:
+            self._load_reader()
 
     def read(self, image: np.ndarray, bbox: BBox | None) -> OCRResult:
         started = perf_counter()
         try:
-            payload = self.service.analyze(image, OCR_PROMPT, OCR_SCHEMA)
-            raw_text = payload.get("text")
-            text = normalize_plate_text(str(raw_text)) if raw_text is not None else None
-            confidence = float(payload["confidence"])
-            readable = bool(payload["readable"])
-            if not 0 <= confidence <= 1:
-                raise ValueError("Gemini confidence is outside 0..1")
-            status = "success" if text and readable and confidence >= self.min_confidence else "needs_review"
-            error = None if status == "success" else "Gemini OCR is unreadable or below the review threshold"
+            # API requests run in worker threads. Serialize model initialization
+            # and inference so concurrent captures share the reader safely.
+            with self._lock:
+                self._load_reader()
+                detections = self._reader.readtext(image, detail=1, paragraph=False)
+            texts: list[str] = []
+            confidences: list[float] = []
+            for _, raw_text, raw_confidence in detections:
+                normalized = normalize_plate_text(raw_text)
+                if not normalized:
+                    continue
+                confidence = float(raw_confidence)
+                if not 0 <= confidence <= 1:
+                    raise ValueError("EasyOCR confidence is outside 0..1")
+                texts.append(normalized)
+                confidences.append(confidence)
+            text = normalize_plate_text("".join(texts))
+            # One uncertain text fragment must not be hidden by stronger ones.
+            confidence = min(confidences) if confidences else None
+            status = "success" if text and confidence is not None and confidence >= self.min_confidence else "needs_review"
+            error = None if status == "success" else "EasyOCR found no readable text or confidence is below the review threshold"
             return OCRResult(
                 text=text,
                 confidence=confidence,
                 bbox=bbox,
-                engine="gemini",
+                engine="easyocr",
                 processing_ms=(perf_counter() - started) * 1000,
                 status=status,
                 error=error,
@@ -65,7 +79,7 @@ class GeminiOCRReader:
         except Exception as exc:
             return OCRResult(
                 bbox=bbox,
-                engine="gemini",
+                engine="easyocr",
                 processing_ms=(perf_counter() - started) * 1000,
-                error=f"Gemini OCR failed: {exc}",
+                error=f"EasyOCR failed: {exc}",
             )
