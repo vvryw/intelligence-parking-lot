@@ -56,6 +56,7 @@ class PipelineResult:
     ocr: OCRResult
     total_ms: float
     errors: list[str] = field(default_factory=list)
+    plate_box: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         status: ReviewStatus
@@ -88,5 +89,7 @@ class PipelineResult:
             },
             "errors": self.errors,
         }
+        if self.plate_box is not None:
+            result["plate_box"] = self.plate_box
         return result
 

@@ -156,15 +156,17 @@ async def classify(image: UploadFile = File(...), camera: CameraRole = Form("ent
     }
 
 
-def read_selected_plate(image, bbox: str | None) -> dict:
+def read_selected_plate(image, bbox: str | None, camera: CameraRole = "entrance") -> dict:
     started = perf_counter()
     selected_box = parse_bbox(bbox)
-    crop = pipeline.plate_pipeline.extract(image, selected_box)
-    preprocess_ms = (perf_counter() - started) * 1000
+    crop = pipeline.extract_plate(image, selected_box, exit_camera=camera == "exit")
+    preprocess_ms = (perf_counter() - started) * 1000 - (crop.box_model_ms or 0)
+    box_details = {"plate_box": crop.box_metadata()} if camera == "exit" else {}
     if crop.image is None:
         if selected_box is not None:
             raise ValueError(crop.error or "Draw a valid box around the license plate")
         return {
+            **box_details,
             "license_plate": None,
             "ocr_engine": pipeline.ocr_reader.engine,
             "bbox": None,
@@ -175,11 +177,12 @@ def read_selected_plate(image, bbox: str | None) -> dict:
             "preprocess_ms": round(preprocess_ms, 1),
             "ocr_ms": None,
         }
+    result = pipeline.read_cropped_plate(image, crop)
     success, jpeg = cv2.imencode(".jpg", crop.image)
     if not success:
         raise ValueError("Could not encode the enhanced plate crop")
-    result = pipeline.ocr_reader.read(crop.image, crop.bbox)
     return {
+        **box_details,
         "license_plate": result.text,
         "ocr_engine": result.engine,
         "bbox": crop.bbox,
@@ -202,7 +205,7 @@ async def plate_read(
         raise HTTPException(422, "Select a plate box before reading the entrance photo.")
     decoded = await decode_upload(image)
     try:
-        result = await asyncio.to_thread(read_selected_plate, decoded, plate_bbox)
+        result = await asyncio.to_thread(read_selected_plate, decoded, plate_bbox, camera)
         return {"camera": camera, **result}
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc

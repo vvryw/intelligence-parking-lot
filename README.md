@@ -24,7 +24,7 @@ Use the Windows laptop that already runs the sensor dashboard as the local serve
 1. **Entrance.** Select Entrance and click **Simulate sensor alert** to take a fresh JPEG over Wi-Fi. Gemini receives the still image and returns a vehicle type and proposed plate box. The parking server crops and enhances the plate, then reads Thai or English text locally with PaddleOCR.
 2. **Review.** Check the vehicle type and plate. If the box is off, draw a new one around the registration characters and click **Read selected plate**. A recrop of the same entrance photo reuses its Gemini result. You can also use **Or open a test photo** and draw the plate box to test without a camera.
 3. **Admission.** Click **Check gate & register entry / exit**. The backend uses the saved observation to check capacity and allocate a matching bay. The web gate opens for four seconds after a new approved decision.
-4. **Exit.** Select Exit and repeat the capture and review. Exit runs PaddleOCR locally. When the plate matches an active visit, the backend closes that visit and releases its assigned bay. The dashboard displays availability, entry and exit times in Bangkok time, decisions, and archived photo links.
+4. **Exit.** Select Exit and repeat the capture and review. Gemini locates the registration line. PaddleOCR compares the raw and enhanced crops locally and sends conflicting reads to review. When the plate matches an active visit, the backend closes that visit and releases its assigned bay. The dashboard displays availability, entry and exit times in Bangkok time, decisions, and archived photo links.
 
 | Spaces | Vehicle types | Capacity |
 |---|---|---:|
@@ -51,7 +51,7 @@ python scripts/setup_paddleocr.py
 
 In Windows PowerShell use `py -3.11 -m venv .venv`, then `.\.venv\Scripts\Activate.ps1`. Install the same requirements, run the model setup, and copy `.env.example` to `.env` if it does not exist.
 
-Set `GEMINI_API_KEY` in the local `.env` for entrance classification. Exit OCR and camera previews can run without the key. The example configuration uses SQLite and saves photos under `data/storage/photos/`. For a cloud setup, follow the Supabase section below.
+Set `GEMINI_API_KEY` in the local `.env` for entrance classification and automatic exit plate boxes. Exit recognition falls back to the local detector when Gemini is unavailable or returns an unusable box. Draw a box to use local OCR directly, or set `GEMINI_EXIT_PLATE_BOX=false` to keep all exit image processing local. Camera previews run on the local network. The example configuration uses SQLite and saves photos under `data/storage/photos/`. For a cloud setup, follow the Supabase section below.
 
 ```bash
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -74,7 +74,7 @@ The backend corrects orientation before sending frames to preview or OCR. The pr
 2. Set `PARKING_BACKEND=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `SUPABASE_STORAGE_BUCKET` in the backend's ignored `.env`. Use your project URL and server-only secret. The default bucket name matches the migration.
 3. Restart the backend. The dashboard should show **Supabase connected** and the bay counts.
 
-The database stores bay types, recognition observations, visits, decisions, simulated gate commands and the latest occupancy per connected sensor. A registered entry creates a `still_in` visit. A matching exit changes it to `left` and records a UTC timestamp. Original photos and enhanced crops go to the private bucket, and the local backend serves them to the dashboard.
+The database stores bay types, recognition observations, visits, decisions, simulated gate commands and the latest occupancy per connected sensor. A registered entry creates a `still_in` visit. A matching exit changes it to `left` and records a UTC timestamp. Original photos and the OCR crops go to the private bucket, and the local backend serves them to the dashboard.
 
 In Supabase mode, the cloud ledger is authoritative. If a transaction result is uncertain, the dashboard keeps the simulator closed and the same observation can be retried. Table access and parking RPCs are restricted to the backend role. Keep the API on loopback or behind authentication because it exposes parking history and photos. Wi-Fi credentials, backend secrets, photos, databases and downloaded weights belong in local files.
 

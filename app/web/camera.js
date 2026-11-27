@@ -76,7 +76,8 @@ function updateControls() {
   trigger.disabled = busy;
   element("test-image").disabled = busy;
   resume.disabled = busy;
-  readPlate.disabled = !snapshot || !box || reading || registering;
+  readPlate.disabled = !snapshot || (!box && capturedCamera !== "exit") || busy;
+  readPlate.textContent = capturedCamera === "exit" && !box ? "Find and read plate" : "Read selected plate";
   comparePlate.disabled = !snapshot || !box || reading || classifying;
   element("expected-plate").disabled = reading || classifying;
   element("enhance-comparison").disabled = reading || classifying;
@@ -210,7 +211,7 @@ trigger.addEventListener("click", async () => {
     status("preview-status", "", "Captured still");
     element("preview-note").textContent = "Drag a tight box to adjust the plate selection.";
     element("camera-time").textContent = seconds(photo.headers.get("X-Camera-Ms"));
-    status("capture-status", "pending", capturedCamera === "entrance" ? "Classifying the vehicle and reading the plate…" : "Reading the exit plate…");
+    status("capture-status", "pending", capturedCamera === "entrance" ? "Classifying the vehicle and reading the plate…" : "Finding and reading the exit plate…");
     await analyzeParkingPhoto();
   } catch (error) {
     status("capture-status", "error", stage.hidden ? "Camera capture failed." : "Parking analysis failed.");
@@ -309,8 +310,8 @@ async function analyzeParkingPhoto() {
   if (result.plate_bbox) { box = result.plate_bbox; showSelectedBox(); }
   const names = { car: "Passenger car", sportcar: "Sports car", supercar: "Supercar", unknown: "Unknown" };
   element("vehicle").textContent = capturedCamera === "exit" ? "Matched from entry on exit" : (names[result.vehicle_type] || "Unknown");
-  element("model").textContent = result.model || "—";
-  element("gemini-time").textContent = seconds(result.processing_ms.vehicle);
+  element("model").textContent = result.model || result.plate_box?.model || "—";
+  element("gemini-time").textContent = seconds(result.processing_ms.vehicle ?? result.plate_box?.processing_ms);
   element("plate").textContent = result.license_plate || "Unreadable";
   element("enhancement-time").textContent = seconds(result.preprocess_ms);
   element("ocr-time").textContent = seconds(result.ocr_ms);
@@ -319,7 +320,11 @@ async function analyzeParkingPhoto() {
     element("enhanced-plate").hidden = false;
   }
   status("capture-status", result.eligible ? "success" : "review", result.eligible ? "Analysis saved. Review the plate, then check the gate." : "Analysis saved. Recognition needs review.");
-  status("plate-status", result.eligible ? "success" : "review", result.license_plate ? "Plate read. Redraw its box if needed." : "No clear plate found. Draw a box around the characters.");
+  const boxSource = { gemini: "Gemini plate box", heuristic: "Local plate box", heuristic_fallback: "Local fallback box", manual: "Selected box" }[result.plate_box?.source];
+  const plateMessage = result.license_plate
+    ? `${boxSource ? `${boxSource}. ` : ""}Check the reading and redraw the box if needed.`
+    : "Plate unreadable. Draw a box around the registration characters and try again.";
+  status("plate-status", result.eligible ? "success" : "review", plateMessage);
   errorMessage("capture-error", result.vehicle?.error);
   errorMessage("plate-error", result.errors.filter((error) => error !== result.vehicle?.error).join(" · "));
   status("parking-decision", "", "Photo saved. Check the gate to allocate or release a matching space.");
@@ -379,8 +384,9 @@ element("test-image").addEventListener("change", async (event) => {
     resume.hidden = false;
     element("capture-camera").textContent = "Uploaded test photo";
     status("preview-status", "", "Test photo");
-    status("capture-status", "", "Test photo loaded. Draw a box around the plate.");
-    status("plate-status", "", "Draw a box, then read it or compare OCR models.");
+    const exitPhoto = capturedCamera === "exit";
+    status("capture-status", "", exitPhoto ? "Test photo loaded. Read the plate or draw a box." : "Test photo loaded. Draw a box around the plate.");
+    status("plate-status", "", exitPhoto ? "Click Find and read plate, or draw your own box." : "Draw a box, then read it or compare OCR models.");
     element("preview-note").textContent = file.name;
   } catch (error) {
     resumePreview();

@@ -21,7 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="ESP32 capture URL; defaults to ESP32_CAPTURE_URL",
     )
     parser.add_argument("--plate-bbox", help="Manual plate crop in original-image x1,y1,x2,y2")
-    parser.add_argument("--camera", choices=CAMERA_LABELS, default="entrance", help="Entrance uses Gemini and OCR. Exit uses local OCR.")
+    parser.add_argument("--camera", choices=CAMERA_LABELS, default="entrance", help="Gemini finds the plate box for either camera and classifies at entrance. OCR runs locally.")
     parser.add_argument(
         "--capture-only",
         metavar="OUTPUT",

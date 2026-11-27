@@ -9,7 +9,7 @@ The camera/decision service is the only parking allocator. When Supabase is conf
 | `VIP-1`, `VIP-2` | `sportcar`, `supercar` | 2 |
 | `NORMAL-1`, `NORMAL-2`, `NORMAL-3` | `car` | 3 |
 
-Gemini classifies at entrance; PaddleOCR reads both directions. Exit uses the entry session's stored type. There is no cross-type overflow. Unknown/low-confidence recognition is denied. A repeated observation returns its original decision without another allocation or OPEN command. A known exit frees its own space, even if the lot is full. An unknown exit cannot release a space.
+Gemini locates plate boxes for both directions and classifies vehicles at entrance. PaddleOCR reads the crops locally. Exit uses the entry session's stored type and can fall back to a local box. There is no cross-type overflow. Unknown/low-confidence recognition is denied. A repeated observation returns its original decision without another allocation or OPEN command. A known exit frees its own space, even if the lot is full. An unknown exit cannot release a space.
 
 The current operator flow is: **Simulate sensor alert → analyze/archive the photo → review the reading → Check gate & register entry/exit**. A successful simulated entry allocates a space and counts it as occupied; this is an admission ledger, not proof of physical bay occupancy. A successful simulated exit closes that session. Real passage/servo acknowledgement remains a future integration, and no physical OPEN is published.
 

@@ -2,7 +2,7 @@ digraph parking_decision {
  graph [rankdir=TB,bgcolor="#f4f7fc",pad="0.4",nodesep="0.45",ranksep="0.65",fontname="Helvetica",fontsize=22,label="ENTRY / EXIT — PARKING & GATE RULES",labelloc=t];
  node [shape=box,style="rounded,filled",fillcolor="white",color="#a8bdd2",fontname="Helvetica",fontsize=13,margin="0.2,0.14"];
  edge [fontname="Helvetica",fontsize=11,color="#54718b"];
- photo [label="Capture one still -> archive original + crop\nPaddleOCR reads plate; Gemini classifies entry only"];
+ photo [label="Capture and archive one still + crop\nGemini finds the plate box; PaddleOCR reads it\nGemini also classifies entrance vehicles"];
  quality [shape=diamond,label="Recognition usable?\nPlate readable; entry type known"];
  direction [shape=diamond,label="Entry or exit?"];
  type [shape=diamond,label="Entry vehicle type"];
@@ -28,7 +28,7 @@ digraph parking_decision {
  vip -> free;
  free -> closed [label="No / full"];
  free -> allocate [label="Yes"];
- direction -> match [label="Exit (no Gemini call)"];
+ direction -> match [label="Exit"];
  match -> closed [label="No"];
  match -> release [label="Yes, even when lot is full"];
  allocate -> retry [style=dashed];

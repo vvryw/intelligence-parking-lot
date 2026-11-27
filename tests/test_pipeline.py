@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from app.plate_pipeline import PlateCrop
 from app.gemini_service import GeminiJSONService
@@ -71,3 +72,27 @@ def test_gemini_classification_and_local_ocr_use_separate_engines():
     assert result["license_plate"] == "กข1234"
     assert result["ocr_engine"] == "easyocr"
     assert result["status"] == "success"
+
+
+@pytest.mark.parametrize(
+    ("enhanced_text", "raw_text", "text", "status"),
+    [
+        ("ม835", "จม835", "จม835", "success"),
+        ("AB385", "AB", "AB385", "success"),
+        ("AB385", "AC385", "AB385", "needs_review"),
+        (None, "483S5", "483S5", "needs_review"),
+    ],
+)
+def test_exit_box_compares_raw_and_enhanced_readings(enhanced_text, raw_text, text, status):
+    class Reader:
+        def read(self, image, bbox):
+            value = raw_text if image.ndim == 3 else enhanced_text
+            return OCRResult(text=value, confidence=.9 if value else None,
+                             status="success" if value else "needs_review", bbox=bbox)
+
+    image = np.zeros((100, 100, 3), dtype=np.uint8)
+    crop = PlateCrop(np.zeros((20, 60), dtype=np.uint8), (10, 50, 70, 70), "gemini")
+    result = ParkingAIPipeline(ocr_reader=Reader()).read_cropped_plate(image, crop)
+    assert (result.text, result.status) == (text, status)
+    if text == raw_text:
+        assert crop.image.ndim == 3

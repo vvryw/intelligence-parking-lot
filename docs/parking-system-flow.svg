@@ -36,8 +36,8 @@
 <tspan x="81" dy="0">Google Gemini</tspan>
 </text>
 <text x="81" y="269" class="body" text-anchor="start">
-<tspan x="81" dy="0">Receives the entrance JPEG.</tspan>
-<tspan x="81" dy="25">Returns vehicle type + plate box.</tspan>
+<tspan x="81" dy="0">Entrance JPEG → vehicle type + plate box.</tspan>
+<tspan x="81" dy="25">Exit JPEG → plate box.</tspan>
 <tspan x="81" dy="25">Classes: car, sportcar, supercar.</tspan>
 </text>
 <rect x="515" y="203" width="465" height="155" rx="16" fill="#e6f5ee" stroke="#bacbdc" stroke-width="1.5"/>
@@ -54,7 +54,7 @@
 <tspan x="1041" dy="0">Supabase · Private photo bucket</tspan>
 </text>
 <text x="1041" y="269" class="body" text-anchor="start">
-<tspan x="1041" dy="0">Receives original JPEG + enhanced crop.</tspan>
+<tspan x="1041" dy="0">Receives original JPEG + OCR crop.</tspan>
 <tspan x="1041" dy="25">Returns stored JPEGs to the parking server.</tspan>
 <tspan x="1041" dy="25">PostgreSQL stores the linked media IDs.</tspan>
 </text>
@@ -93,8 +93,8 @@
 </text>
 <text x="411" y="629" class="small" text-anchor="start">
 <tspan x="411" dy="0">Entry: Gemini classification + box</tspan>
-<tspan x="411" dy="25">Both: crop, enhance, PaddleOCR</tspan>
-<tspan x="411" dy="25">Save JPEG, crop and observation ID.</tspan>
+<tspan x="411" dy="25">Exit: Gemini plate box + local fallback</tspan>
+<tspan x="411" dy="25">Both: local PaddleOCR + photo archive</tspan>
 </text>
 <rect x="762" y="563" width="343" height="165" rx="16" fill="#ffffff" stroke="#bacbdc" stroke-width="1.5"/>
 <text x="783" y="597" class="head" text-anchor="start">
@@ -148,7 +148,7 @@
 </text>
 <polyline points="615,508 615,442 265,442 265,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="395" y="431" class="label" text-anchor="middle">
-<tspan x="395" dy="0">HTTPS · JPEG ⇄ class + plate box</tspan>
+<tspan x="395" dy="0">HTTPS · JPEG ⇄ plate box / entry class</tspan>
 </text>
 <polyline points="882,508 882,441 745,441 745,359" fill="none" stroke="#34546e" stroke-width="2.5" stroke-linejoin="round" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
 <text x="810" y="424" class="label" text-anchor="middle">

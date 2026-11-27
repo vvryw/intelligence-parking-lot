@@ -31,8 +31,9 @@ For a controller, `POST /capture` accepts a form field `camera=entrance` or
 `--camera entrance --camera-url` or `--camera exit --camera-url`.
 
 For Entrance, the laptop sends the photo to Gemini for vehicle classification and
-a plate box, then reads the crop locally with PaddleOCR. For Exit, the laptop finds
-the plate locally and runs PaddleOCR. If the crop is unclear, draw a box on the still
+a plate box, then reads the crop locally with PaddleOCR. For Exit, Gemini finds a
+plate box and PaddleOCR reads the crop locally. A local detector can substitute for
+Gemini's exit box. If the crop is unclear, draw a box on the still
 or supply `plate_bbox` to the API or `--plate-bbox` to the CLI.
 
 An ESP32-CAM-MB is the USB programmer/power adapter underneath the camera board.

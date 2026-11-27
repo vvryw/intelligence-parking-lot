@@ -256,7 +256,15 @@ def test_exit_capture_and_plate_read_never_classify(monkeypatch):
     _, photo = cv2.imencode(".jpg", image)
 
     def unexpected_gemini(_):
-        pytest.fail("Exit frames must never reach Gemini")
+        pytest.fail("Exit frames must never be classified")
+
+    box_calls = []
+
+    def locate_plate(frame):
+        box_calls.append(frame.shape)
+        if frame.max() == 0:
+            return None, "test-gemini"
+        return (100, 100, 217, 131), "test-gemini"
 
     def read_plate(crop, bbox):
         assert bbox is not None
@@ -264,8 +272,10 @@ def test_exit_capture_and_plate_read_never_classify(monkeypatch):
         return OCRResult(text="กข1234", confidence=0.9, bbox=bbox, status="success")
 
     monkeypatch.setenv("ESP32_EXIT_CAPTURE_URL", "http://exit.test/capture")
+    monkeypatch.setenv("GEMINI_EXIT_PLATE_BOX", "true")
     monkeypatch.setattr(main, "fetch_camera_image", lambda *args, **kwargs: (image, "exit.jpg"))
     monkeypatch.setattr(main.pipeline.vehicle_detector, "detect", unexpected_gemini)
+    monkeypatch.setattr(main.pipeline.vehicle_detector, "locate_plate", locate_plate)
     monkeypatch.setattr(main.pipeline.ocr_reader, "read", read_plate)
 
     upload = {"image": ("exit.jpg", photo.tobytes(), "image/jpeg")}
@@ -278,11 +288,18 @@ def test_exit_capture_and_plate_read_never_classify(monkeypatch):
             assert result["status"] == "success"
             assert result["vehicle_type"] is None
             assert result["processing_ms"]["vehicle"] is None
+            assert result["plate_box"]["source"] == "gemini"
 
         automatic = client.post("/plate/read", files=upload, data=exit_form)
         assert automatic.status_code == 200
         assert automatic.json()["license_plate"] == "กข1234"
         assert automatic.json()["bbox"]
+        assert automatic.json()["plate_box"]["model"] == "test-gemini"
+        assert len(box_calls) == 3
+
+        selected = client.post("/plate/read", files=upload, data={**exit_form, "plate_bbox": "100,100,217,131"})
+        assert selected.json()["plate_box"]["source"] == "manual"
+        assert len(box_calls) == 3
         assert client.post("/classify", files=upload, data=exit_form).status_code == 400
 
         blank = cv2.imencode(".jpg", np.zeros_like(image))[1].tobytes()
@@ -290,3 +307,4 @@ def test_exit_capture_and_plate_read_never_classify(monkeypatch):
         assert unclear.status_code == 200
         assert unclear.json()["status"] == "needs_review"
         assert unclear.json()["enhanced_plate"] is None
+        assert unclear.json()["plate_box"]["source"] == "heuristic_fallback"

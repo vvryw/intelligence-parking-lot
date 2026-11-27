@@ -9,7 +9,7 @@ import cv2
 
 from .parking_store import ParkingStore, canonical_plate, space_kind
 from .pipeline import ParkingAIPipeline
-from .schemas import OCRResult, PipelineResult, VehicleResult
+from .schemas import PipelineResult, VehicleResult
 
 
 def jpeg_bytes(image) -> bytes:
@@ -39,18 +39,15 @@ class ParkingRecognition:
         if bbox is None and vehicle:
             bbox = vehicle.plate_bbox
         crop_started = perf_counter()
-        crop = self.pipeline.plate_pipeline.extract(image, bbox)
-        preprocess_ms = (perf_counter() - crop_started) * 1000
-        if crop.image is None:
-            ocr = OCRResult(engine=self.pipeline.ocr_reader.engine, status="needs_review", error=crop.error)
-            crop_jpeg = None
-        else:
-            ocr = self.pipeline.ocr_reader.read(crop.image, crop.bbox)
-            crop_jpeg = jpeg_bytes(crop.image)
+        crop = self.pipeline.extract_plate(image, bbox, exit_camera=camera == "exit")
+        preprocess_ms = (perf_counter() - crop_started) * 1000 - (crop.box_model_ms or 0)
+        ocr = self.pipeline.read_cropped_plate(image, crop)
+        crop_jpeg = jpeg_bytes(crop.image) if crop.image is not None else None
         result = PipelineResult(
             image_id=f"{camera}_capture", vehicle=vehicle, ocr=ocr,
             total_ms=(perf_counter() - started) * 1000,
             errors=list(dict.fromkeys(error for error in (vehicle.error if vehicle else None, crop.error, ocr.error) if error)),
+            plate_box=crop.box_metadata() if camera == "exit" else None,
         ).to_dict()
         # This record is created on the server. The commit endpoint never trusts
         # a browser-provided plate, classification, confidence or approval flag.

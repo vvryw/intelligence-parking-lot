@@ -19,10 +19,15 @@ from app.schemas import OCRResult, VehicleResult
 def setup(tmp_path):
     class Vehicle:
         calls = 0
+        box_calls = 0
 
         def detect(self, image):
             self.calls += 1
             return VehicleResult(vehicle_type="sportcar", confidence=.9, needs_review=False, plate_bbox=(5, 5, 60, 25))
+
+        def locate_plate(self, image):
+            self.box_calls += 1
+            return (5, 5, 60, 25), "test-gemini"
 
     class OCR:
         engine = "paddleocr-v5-th"
@@ -40,8 +45,9 @@ def setup(tmp_path):
     return app, service, encoded.tobytes()
 
 
-def test_real_api_flow_archives_allocates_replays_and_releases(setup):
+def test_real_api_flow_archives_allocates_replays_and_releases(setup, monkeypatch):
     app, service, image = setup
+    monkeypatch.setenv("GEMINI_EXIT_PLATE_BOX", "true")
     with TestClient(app) as client:
         observation = client.post("/parking/analyze", files={"image": ("car.png", image)}, data={"camera": "entrance"}).json()
         assert observation["eligible"]
@@ -53,8 +59,11 @@ def test_real_api_flow_archives_allocates_replays_and_releases(setup):
         assert first["decision"]["space_id"] == "VIP-1"
         replay = client.post("/parking/commit", json={"observation_id": observation["observation_id"]}).json()
         assert replay["decision"]["replayed"]
-        exit_obs = client.post("/parking/analyze", files={"image": ("car.png", image)}, data={"camera": "exit", "plate_bbox": "5,5,60,25"}).json()
-        assert service.pipeline.vehicle_detector.calls == 1  # Exit never calls Gemini.
+        exit_obs = client.post("/parking/analyze", files={"image": ("car.png", image)}, data={"camera": "exit"}).json()
+        assert exit_obs["plate_box"]["source"] == "gemini"
+        assert exit_obs["vehicle_type"] is None
+        assert service.pipeline.vehicle_detector.calls == 1
+        assert service.pipeline.vehicle_detector.box_calls == 1
         result = client.post("/parking/commit", json={"observation_id": exit_obs["observation_id"]}).json()
         assert result["decision"]["approved"]
         assert result["parking"]["capacity"]["vip"]["available"] == 2

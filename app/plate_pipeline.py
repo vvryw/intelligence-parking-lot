@@ -14,6 +14,15 @@ class PlateCrop:
     bbox: BBox | None
     method: str
     error: str | None = None
+    box_model: str | None = None
+    box_model_ms: float | None = None
+
+    def box_metadata(self) -> dict:
+        return {
+            "source": self.method,
+            "model": self.box_model,
+            "processing_ms": round(self.box_model_ms, 1) if self.box_model_ms is not None else None,
+        }
 
 
 def _clip_bbox(bbox: BBox, width: int, height: int) -> BBox | None:

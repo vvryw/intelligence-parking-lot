@@ -82,7 +82,7 @@
 
       <section class="panel capture-panel" aria-labelledby="capture-heading">
         <h2 id="capture-heading">Sensor test</h2>
-        <p class="capture-description">Entrance uses Gemini for vehicle type and PaddleOCR for the plate. Exit reads the plate locally with PaddleOCR. You can also compare the OCR models on a selected crop.</p>
+        <p class="capture-description">Gemini finds the plate box for both cameras and classifies the vehicle at entrance. PaddleOCR reads the cropped plate locally. Draw your own box to correct the crop or compare OCR models.</p>
         <button id="trigger" type="button">Simulate sensor alert</button>
         <label for="test-image" class="test-image-label">Or open a test photo</label>
         <input id="test-image" type="file" accept="image/*">

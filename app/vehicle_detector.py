@@ -31,6 +31,20 @@ VEHICLE_SCHEMA = {
     "required": ["vehicle_type", "confidence", "bbox_1000", "plate_bbox_1000"],
 }
 
+PLATE_BOX_SCHEMA = {
+    "type": "object",
+    "properties": {"plate_bbox_1000": NORMALIZED_BOX_SCHEMA},
+    "required": ["plate_bbox_1000"],
+}
+
+PLATE_BOX_PROMPT = """Locate the registration characters on the license plate of the single dominant
+vehicle in this exit camera photo. The vehicle may be a toy car with a paper plate.
+Include every registration character and a small margin on all sides. Exclude any
+separate province line, body logos, stickers and background text. If a plate is
+missing or you cannot identify a single plate, return null. Return only plate_bbox_1000
+as [y_min, x_min, y_max, x_max] in 0–1000 coordinates over the original image.
+Do not classify the vehicle or transcribe the plate."""
+
 VEHICLE_PROMPT = """Classify the single dominant vehicle from its visible design.
 If the subject is a scale model, classify the vehicle it represents.
 - car: ordinary passenger vehicle such as a sedan, hatchback, wagon, SUV, or family coupe.
@@ -85,6 +99,16 @@ class GeminiVehicleDetector:
         self.min_confidence = min_confidence if min_confidence is not None else float(
             os.getenv("GEMINI_MIN_VEHICLE_CONFIDENCE", "0.60")
         )
+
+    def locate_plate(self, image: np.ndarray) -> tuple[BBox | None, str]:
+        payload, model = self.service.analyze_with_model(image, PLATE_BOX_PROMPT, PLATE_BOX_SCHEMA)
+        raw = payload.get("plate_bbox_1000")
+        if not isinstance(raw, list) or len(raw) != 4 or any(type(value) is not int for value in raw):
+            return None, model
+        y1, x1, y2, x2 = raw
+        if not (0 <= x1 < x2 <= 1000 and 0 <= y1 < y2 <= 1000):
+            return None, model
+        return _usable_plate_bbox(raw, image, None), model
 
     def detect(self, image: np.ndarray) -> VehicleResult:
         started = perf_counter()

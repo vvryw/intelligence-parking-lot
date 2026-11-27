@@ -63,8 +63,8 @@ text(1923, 108, ["Prepared / future"], "small")
 panel(35, 143, 2130, 247, "#e8eff8")
 text(60, 182, ["INTERNET SERVICES"], "section")
 box(60, 203, 415, 155, "Google Gemini", [
-    "Receives the entrance JPEG.",
-    "Returns vehicle type + plate box.",
+    "Entrance JPEG → vehicle type + plate box.",
+    "Exit JPEG → plate box.",
     "Classes: car, sportcar, supercar.",
 ], "#f4efff")
 box(515, 203, 465, 155, "Supabase · PostgreSQL", [
@@ -73,7 +73,7 @@ box(515, 203, 465, 155, "Supabase · PostgreSQL", [
     "Assign or release a bay in one transaction",
 ], "#e6f5ee")
 box(1020, 203, 470, 155, "Supabase · Private photo bucket", [
-    "Receives original JPEG + enhanced crop.",
+    "Receives original JPEG + OCR crop.",
     "Returns stored JPEGs to the parking server.",
     "PostgreSQL stores the linked media IDs.",
 ], "#e6f5ee")
@@ -96,8 +96,8 @@ box(60, 563, 295, 165, "1. Camera capture", [
 ], cls="small")
 box(390, 563, 337, 165, "2. Recognition + archive", [
     "Entry: Gemini classification + box",
-    "Both: crop, enhance, PaddleOCR",
-    "Save JPEG, crop and observation ID.",
+    "Exit: Gemini plate box + local fallback",
+    "Both: local PaddleOCR + photo archive",
 ], cls="small")
 box(762, 563, 343, 165, "3. Parking decision API", [
     "Entry: check matching bay capacity.",
@@ -130,7 +130,7 @@ arrow([(1810, 644), (1844, 644)], both=True)
 text(1235, 770, ["When enabled, the cloud uploader queues raw telemetry and uses HTTPS with server-side credentials."], "small")
 
 arrow([(615, 508), (615, 442), (265, 442), (265, 359)], both=True)
-label(395, 431, "HTTPS · JPEG ⇄ class + plate box")
+label(395, 431, "HTTPS · JPEG ⇄ plate box / entry class")
 arrow([(882, 508), (882, 441), (745, 441), (745, 359)], both=True)
 label(810, 424, "HTTPS · records + results")
 arrow([(1035, 508), (1035, 442), (1215, 442), (1215, 359)], both=True)
