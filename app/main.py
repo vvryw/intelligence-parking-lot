@@ -136,6 +136,10 @@ async def decode_upload(image: UploadFile):
 
 parking_store = create_parking_store()
 app.include_router(parking_router(ParkingRecognition(pipeline, parking_store), decode_upload))
+if getattr(parking_store, "passage_mode", False):
+    from .passage_api import passage_router
+
+    app.include_router(passage_router(parking_store))
 
 
 @app.post("/classify")

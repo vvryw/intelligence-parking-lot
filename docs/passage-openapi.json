@@ -1,0 +1,1321 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Isolated passage-aware parking API",
+    "version": "1"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8001"
+    }
+  ],
+  "paths": {
+    "/camera/snapshot": {
+      "get": {
+        "summary": "Camera Snapshot",
+        "operationId": "camera_snapshot_camera_snapshot_get",
+        "parameters": [
+          {
+            "name": "camera",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "entrance",
+                "exit"
+              ],
+              "type": "string",
+              "default": "entrance",
+              "title": "Camera"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/status": {
+      "get": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "Status",
+        "operationId": "status_parking_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/history": {
+      "get": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "History",
+        "operationId": "history_parking_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/analyze": {
+      "post": {
+        "tags": [
+          "Parking and storage"
+        ],
+        "summary": "Analyze",
+        "operationId": "analyze_parking_analyze_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_parking_analyze_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/passage/health": {
+      "get": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Health",
+        "operationId": "health_parking_passage_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/parking/passage/arrivals": {
+      "post": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Arrival",
+        "operationId": "arrival_parking_passage_arrivals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Arrival"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/parking/passage/arrivals/{arrival_id}": {
+      "get": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Get Arrival",
+        "operationId": "get_arrival_parking_passage_arrivals__arrival_id__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "arrival_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+              "title": "Arrival Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/passage/arrivals/{arrival_id}/prepare": {
+      "post": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Prepare",
+        "operationId": "prepare_parking_passage_arrivals__arrival_id__prepare_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "arrival_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+              "title": "Arrival Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Preparation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/passage/gate/ack": {
+      "post": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Gate Ack",
+        "operationId": "gate_ack_parking_passage_gate_ack_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GateAck"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/parking/passage/gate/feedback": {
+      "post": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Gate Feedback",
+        "operationId": "gate_feedback_parking_passage_gate_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Feedback"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/parking/passage/arrivals/{arrival_id}/review": {
+      "post": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Review",
+        "operationId": "review_parking_passage_arrivals__arrival_id__review_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "arrival_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+              "title": "Arrival Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Review"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/passage/arrivals/{arrival_id}/cancel": {
+      "post": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Cancel",
+        "operationId": "cancel_parking_passage_arrivals__arrival_id__cancel_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "arrival_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+              "title": "Arrival Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cancellation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArrivalState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parking/passage/worker/recover": {
+      "post": {
+        "tags": [
+          "Passage simulation"
+        ],
+        "summary": "Recover",
+        "operationId": "recover_parking_passage_worker_recover_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Body_analyze_parking_analyze_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "Image"
+          },
+          "camera": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Camera",
+            "default": "entrance"
+          },
+          "plate_bbox": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate Bbox"
+          },
+          "previous_observation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Observation Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_analyze_parking_analyze_post"
+      },
+      "Arrival": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version"
+          },
+          "event_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Event Id"
+          },
+          "producer_id": {
+            "type": "string",
+            "const": "sensor-gateway",
+            "title": "Producer Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "arrival_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Arrival Id"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Direction"
+          },
+          "trigger": {
+            "type": "string",
+            "const": "ultrasonic",
+            "title": "Trigger"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "event_id",
+          "producer_id",
+          "occurred_at",
+          "arrival_id",
+          "direction",
+          "trigger"
+        ],
+        "title": "Arrival"
+      },
+      "ArrivalState": {
+        "properties": {
+          "arrival_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Arrival Id"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Direction"
+          },
+          "decision_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Decision Id"
+          },
+          "observation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observation Id"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "space_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Id"
+          },
+          "plate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plate"
+          },
+          "vehicle_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vehicle Type"
+          },
+          "ack_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ack State"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "capturing",
+              "reserved",
+              "matched",
+              "denied",
+              "review",
+              "completed",
+              "cancelled"
+            ],
+            "title": "State"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EntranceCommand"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "arrival_id",
+          "direction",
+          "decision_id",
+          "observation_id",
+          "session_id",
+          "space_id",
+          "plate",
+          "vehicle_type",
+          "ack_state",
+          "state",
+          "reason",
+          "replayed",
+          "command"
+        ],
+        "title": "ArrivalState"
+      },
+      "EntranceCommand": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version"
+          },
+          "event_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Event Id"
+          },
+          "producer_id": {
+            "type": "string",
+            "const": "parking-passage-test",
+            "title": "Producer Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "arrival_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Arrival Id"
+          },
+          "command_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Command Id"
+          },
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "decision_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Decision Id"
+          },
+          "direction": {
+            "type": "string",
+            "const": "entrance",
+            "title": "Direction"
+          },
+          "action": {
+            "type": "string",
+            "const": "OPEN",
+            "title": "Action"
+          },
+          "issued_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Issued At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "license_plate": {
+            "type": "string",
+            "title": "License Plate"
+          },
+          "lcd_plate": {
+            "type": "string",
+            "title": "Lcd Plate"
+          },
+          "vehicle_type": {
+            "type": "string",
+            "enum": [
+              "car",
+              "sportcar",
+              "supercar"
+            ],
+            "title": "Vehicle Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "event_id",
+          "producer_id",
+          "occurred_at",
+          "arrival_id",
+          "command_id",
+          "session_id",
+          "decision_id",
+          "direction",
+          "action",
+          "issued_at",
+          "expires_at",
+          "license_plate",
+          "lcd_plate",
+          "vehicle_type"
+        ],
+        "title": "EntranceCommand"
+      },
+      "Preparation": {
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Observation Id"
+          },
+          "lcd_plate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[ -~]{1,16}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lcd Plate"
+          },
+          "issued_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issued At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observation_id"
+        ],
+        "title": "Preparation"
+      },
+      "GateAck": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version"
+          },
+          "event_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Event Id"
+          },
+          "producer_id": {
+            "type": "string",
+            "const": "sensor-gateway",
+            "title": "Producer Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "arrival_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Arrival Id"
+          },
+          "ack_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Ack Id"
+          },
+          "command_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Command Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "rejected",
+              "failed",
+              "unknown"
+            ],
+            "title": "State"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "accepted",
+                  "rejected",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "physical_movement": {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "const": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Physical Movement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "event_id",
+          "producer_id",
+          "occurred_at",
+          "arrival_id",
+          "ack_id",
+          "command_id",
+          "state",
+          "reason"
+        ],
+        "title": "GateAck"
+      },
+      "ReceiptResponse": {
+        "properties": {
+          "receipt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeedbackReceipt"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "receipt"
+        ],
+        "title": "ReceiptResponse"
+      },
+      "FeedbackReceipt": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version"
+          },
+          "event_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Event Id"
+          },
+          "producer_id": {
+            "type": "string",
+            "const": "parking-passage-test",
+            "title": "Producer Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "arrival_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Arrival Id"
+          },
+          "feedback_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Feedback Id"
+          },
+          "state": {
+            "type": "string",
+            "const": "recorded",
+            "title": "State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "event_id",
+          "producer_id",
+          "occurred_at",
+          "arrival_id",
+          "feedback_id",
+          "state"
+        ],
+        "title": "FeedbackReceipt"
+      },
+      "Feedback": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Schema Version"
+          },
+          "event_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Event Id"
+          },
+          "producer_id": {
+            "type": "string",
+            "const": "sensor-gateway",
+            "title": "Producer Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "arrival_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]{1,96}$",
+            "title": "Arrival Id"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "entrance",
+              "exit"
+            ],
+            "title": "Direction"
+          },
+          "command_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9:_-]{1,96}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "opening",
+              "completed",
+              "hold",
+              "failed"
+            ],
+            "title": "State"
+          },
+          "passage_confirmed": {
+            "type": "boolean",
+            "title": "Passage Confirmed"
+          },
+          "simulation": {
+            "type": "boolean",
+            "const": true,
+            "title": "Simulation"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "event_id",
+          "producer_id",
+          "occurred_at",
+          "arrival_id",
+          "direction",
+          "command_id",
+          "state",
+          "passage_confirmed",
+          "simulation",
+          "reason"
+        ],
+        "title": "Feedback"
+      },
+      "Review": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "capture_or_prepare_failed",
+              "command_ack_timeout"
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "Review"
+      },
+      "Cancellation": {
+        "properties": {
+          "confirmed_no_passage": {
+            "type": "boolean",
+            "title": "Confirmed No Passage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmed_no_passage"
+        ],
+        "title": "Cancellation"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Passage-Key"
+      }
+    }
+  }
+}

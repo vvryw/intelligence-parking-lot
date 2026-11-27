@@ -4,6 +4,8 @@ Intelligence Parking Lot combines two ESP32-CAM cameras, Gemini vehicle classifi
 
 ![One-laptop architecture with both cameras, both dashboards, sensors, and cloud services](docs/parking-system-flow.png)
 
+For the sensor team's passage-aware joint simulation, see the [test setup and API specification](docs/passage-joint-test.md). It uses a separate SQLite ledger and the isolated MQTT topics.
+
 ## Recommended demo setup
 
 Use the Windows laptop that already runs the sensor dashboard as the local server for both projects. Keep each project in its own Python environment. Both dashboards and the sensor bridge can use loopback addresses, so communication between the apps stays on the laptop. Keep the laptop awake during the demo because it serves both dashboards.

@@ -35,12 +35,18 @@ def space_kind(vehicle_type: str | None) -> str | None:
 class ParkingStore:
     """Durable local ledger. One write transaction decides capacity and admission."""
 
+    passage_mode = False
+
     def __init__(self, database: Path | None = None, storage: Path | None = None):
         self.database = Path(database or os.getenv("PARKING_DATABASE_PATH", str(ROOT / "data/runtime/parking.sqlite3"))).resolve()
         self.storage = Path(storage or os.getenv("PARKING_STORAGE_PATH", str(ROOT / "data/storage/photos"))).resolve()
         self.database.parent.mkdir(parents=True, exist_ok=True)
         self.storage.mkdir(parents=True, exist_ok=True)
         with self.connection() as db:
+            if not self.passage_mode and db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='passage_arrivals'"
+            ).fetchone():
+                raise ValueError("This ledger must be opened in passage mode")
             db.execute("PRAGMA journal_mode=WAL")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS spaces (
@@ -250,11 +256,15 @@ class ParkingStore:
 
     def status(self) -> dict:
         with self.connection() as db:
-            spaces = [dict(row) for row in db.execute("""SELECT b.id,b.kind,s.id session_id,s.plate,s.vehicle_type,s.entered_at
-                FROM spaces b LEFT JOIN sessions s ON s.space_id=b.id AND s.status='still_in'
-                ORDER BY CASE b.kind WHEN 'vip' THEN 0 ELSE 1 END,b.id""")]
-            observations = db.execute("SELECT count(*) FROM observations").fetchone()[0]
-            media_count = db.execute("SELECT count(*) FROM media").fetchone()[0]
+            return self._status(db)
+
+    @staticmethod
+    def _status(db) -> dict:
+        spaces = [dict(row) for row in db.execute("""SELECT b.id,b.kind,s.id session_id,s.plate,s.vehicle_type,s.entered_at
+            FROM spaces b LEFT JOIN sessions s ON s.space_id=b.id AND s.status='still_in'
+            ORDER BY CASE b.kind WHEN 'vip' THEN 0 ELSE 1 END,b.id""")]
+        observations = db.execute("SELECT count(*) FROM observations").fetchone()[0]
+        media_count = db.execute("SELECT count(*) FROM media").fetchone()[0]
         for bay in spaces:
             bay["status"] = "occupied" if bay["session_id"] else "free"
         capacity = {}
