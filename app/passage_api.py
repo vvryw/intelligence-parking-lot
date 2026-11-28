@@ -1,4 +1,4 @@
-"""Authenticated loopback HTTP API for the parking simulation worker."""
+"""Authenticated loopback HTTP API for the isolated parking worker."""
 
 from __future__ import annotations
 
@@ -29,6 +29,7 @@ class WireEvent(StrictRequest):
     producer_id: Literal["sensor-gateway"]
     occurred_at: AwareDatetime
     arrival_id: Identifier
+    simulation: StrictBool = True
 
     @field_validator("occurred_at")
     @classmethod
@@ -57,6 +58,8 @@ class GateAck(WireEvent):
     def check_status_alias(self):
         if self.status is not None and self.status != self.state:
             raise ValueError("Acknowledgement state and status disagree")
+        if not self.simulation and "physical_movement" in self.model_fields_set:
+            raise ValueError("Physical acknowledgement cannot report measured movement")
         return self
 
 
@@ -65,15 +68,9 @@ class Feedback(WireEvent):
     command_id: Identifier | None
     state: Literal["opening", "completed", "hold", "failed"]
     passage_confirmed: StrictBool
-    simulation: Literal[True]
+    simulation: StrictBool
+    passage_basis: Literal["inferred_clearance"] | None = None
     reason: Annotated[str, Field(max_length=128)] | None
-
-    @field_validator("simulation", mode="before")
-    @classmethod
-    def require_simulation(cls, value):
-        if value is not True:
-            raise ValueError("Simulation feedback is required")
-        return value
 
     @model_validator(mode="after")
     def check_feedback(self):
@@ -81,8 +78,10 @@ class Feedback(WireEvent):
             raise ValueError("Local exit requires null command_id")
         if self.direction == "entrance" and self.state in {"opening", "completed"} and self.command_id is None:
             raise ValueError("Entrance opening and completion require the command ID")
-        if self.passage_confirmed and self.state != "completed":
-            raise ValueError("Only completed feedback can confirm passage")
+        if self.passage_confirmed and (not self.simulation or self.state != "completed"):
+            raise ValueError("Only completed supervised simulation feedback can confirm passage")
+        if self.passage_basis is not None and (self.simulation or self.state != "completed" or self.reason is not None):
+            raise ValueError("Inferred clearance requires a clean completed physical cycle")
         return self
 
 
@@ -121,6 +120,7 @@ class EntranceCommand(StrictRequest):
     license_plate: str
     lcd_plate: str
     vehicle_type: Literal["car", "sportcar", "supercar"]
+    simulation: Literal[False] | None = None
 
 
 class ArrivalState(StrictRequest):
@@ -135,6 +135,8 @@ class ArrivalState(StrictRequest):
     ack_state: str | None
     state: Literal["capturing", "reserved", "matched", "denied", "review", "completed", "cancelled"]
     reason: str | None
+    passage_basis: Literal["supervised_simulation", "inferred_clearance"] | None
+    completion_feedback_id: Identifier | None
     replayed: bool
     command: EntranceCommand | None
 
@@ -154,7 +156,12 @@ class ReceiptResponse(StrictRequest):
 
 
 def wire_dict(event: WireEvent) -> dict:
-    return {**event.model_dump(mode="json"), "occurred_at": event.occurred_at.isoformat()}
+    payload = event.model_dump(mode="json")
+    # Preserve persisted pre-extension request fingerprints on simulation retries.
+    for name in ("simulation", "passage_basis"):
+        if name not in event.model_fields_set:
+            payload.pop(name, None)
+    return {**payload, "occurred_at": event.occurred_at.isoformat()}
 
 
 def authenticate(x_passage_key: Annotated[str | None, Depends(passage_key)]):
@@ -176,12 +183,12 @@ async def call(operation, *args):
 
 
 def passage_router(store):
-    router = APIRouter(prefix="/parking/passage", tags=["Passage simulation"],
+    router = APIRouter(prefix="/parking/passage", tags=["Passage tests"],
                        dependencies=[Depends(authenticate)])
 
     @router.get("/health")
     async def health():
-        return {"workflow": "passage", "storage": "local", "gate_mode": "simulation"}
+        return {"workflow": "passage", "storage": "local", "gate_mode": store.gate_mode}
 
     @router.post("/arrivals")
     async def arrival(payload: Arrival) -> ArrivalState:
@@ -191,7 +198,7 @@ def passage_router(store):
     async def get_arrival(arrival_id: Identifier) -> ArrivalState:
         return await call(store.get_arrival, arrival_id)
 
-    @router.post("/arrivals/{arrival_id}/prepare")
+    @router.post("/arrivals/{arrival_id}/prepare", response_model_exclude_unset=True)
     async def prepare(arrival_id: Identifier, payload: Preparation) -> ArrivalState:
         return await call(store.prepare, arrival_id, str(payload.observation_id), payload.lcd_plate, payload.issued_at)
 

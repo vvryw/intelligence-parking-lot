@@ -15,7 +15,7 @@ from app.main import decode_upload
 from app.parking_api import parking_router
 from app.parking_recognition import ParkingRecognition
 from app.passage_api import passage_router
-from app.passage_store import PassageParkingStore
+from app.passage_store import PHYSICAL_INFERRED_TEST, SIMULATION, PassageParkingStore
 from app.pipeline import ParkingAIPipeline
 from app.schemas import OCRResult, VehicleResult
 from scripts.run_passage_worker import ACK, ARRIVAL, COMMAND, FEEDBACK, FEEDBACK_ACK, PassageWorker
@@ -60,13 +60,12 @@ class RecognitionFixture:
         return OCRResult(text="ME204", confidence=.9, bbox=bbox, status="success")
 
 
-@pytest.fixture
-def joint(tmp_path, monkeypatch):
+def make_joint(tmp_path, monkeypatch, gate_mode):
     monkeypatch.setenv("PARKING_PASSAGE_KEY", "only-test-key")
     monkeypatch.setenv("GEMINI_EXIT_PLATE_BOX", "false")
     recognition = RecognitionFixture()
     pipeline = ParkingAIPipeline(vehicle_detector=recognition, ocr_reader=recognition)
-    store = PassageParkingStore(tmp_path / "parking.sqlite3", tmp_path / "photos")
+    store = PassageParkingStore(tmp_path / "parking.sqlite3", tmp_path / "photos", gate_mode)
     app = FastAPI()
     app.include_router(passage_router(store))
     app.include_router(parking_router(ParkingRecognition(pipeline, store), decode_upload))
@@ -81,9 +80,19 @@ def joint(tmp_path, monkeypatch):
         return Response(jpeg, media_type="image/jpeg")
 
     with TestClient(app, headers={"X-Passage-Key": "only-test-key"}) as http:
-        worker = PassageWorker(http, lambda topic, body: published.append((topic, json.loads(body))), TestClock(), {})
+        worker = PassageWorker(http, lambda topic, body: published.append((topic, json.loads(body))), TestClock(), {}, gate_mode)
         worker.preflight()
         yield http, worker, frames, published, store
+
+
+@pytest.fixture
+def joint(tmp_path, monkeypatch):
+    yield from make_joint(tmp_path, monkeypatch, SIMULATION)
+
+
+@pytest.fixture
+def physical(tmp_path, monkeypatch):
+    yield from make_joint(tmp_path / "physical", monkeypatch, PHYSICAL_INFERRED_TEST)
 
 
 def wire(worker, topic, message):
@@ -115,6 +124,7 @@ def test_entrance_reserves_before_open_and_finalizes_after_confirmed_feedback(jo
     _, command = reserve(worker, published)
     assert bay(http)["status"] == "reserved"
     assert http.get("/parking/history").json()["sessions"] == []
+    assert "simulation" not in command
     assert datetime.fromisoformat(command["expires_at"]) - datetime.fromisoformat(command["issued_at"]) == timedelta(seconds=5)
     ack = event(command["arrival_id"], ack_id="receipt-1", command_id=command["command_id"], state="accepted",
                 status="accepted", reason="simulated_open_lcd", physical_movement=False)
@@ -200,3 +210,88 @@ def test_exit_waits_for_matching_passage_and_never_releases_a_later_visit(joint)
     assert lane_status(http, "exit-2")["state"] == "completed"
     assert bay(http)["status"] == "free"
     assert all(body["direction"] == "entrance" for topic, body in published if topic == COMMAND)
+
+
+def physical_feedback(aid, direction, command_id=None, *, outcome="inferred"):
+    proof = event(aid, direction=direction, command_id=command_id,
+                  state="hold" if outcome == "fault" else "completed",
+                  passage_confirmed=False, simulation=False, reason="controller_reason_12" if outcome == "fault" else None)
+    if outcome == "inferred":
+        proof["passage_basis"] = "inferred_clearance"
+    return proof
+
+
+def physical_open(worker, published):
+    message = {**arrival("entry-p3", "entrance"), "simulation": False}
+    wire(worker, ARRIVAL, message)
+    worker.tick()
+    topic, command = published[-1]
+    assert topic == COMMAND and command["simulation"] is False
+    return command
+
+
+def test_physical_inference_marks_both_passages_and_reuses_exact_receipt(physical):
+    http, worker, _, published, store = physical
+    command = physical_open(worker, published)
+    wire(worker, ACK, event("entry-p3", ack_id="p3-ack", command_id=command["command_id"], state="accepted",
+                            status="accepted", simulation=False, reason="open_commanded_lcd"))
+    assert bay(http)["status"] == "reserved"
+    entry = physical_feedback("entry-p3", "entrance", command["command_id"])
+    wire(worker, FEEDBACK, entry)
+    assert bay(http)["session_id"] == command["session_id"]
+
+    exit_arrival = {**arrival("exit-p3", "exit"), "simulation": False}
+    exit_proof = physical_feedback("exit-p3", "exit")
+    wire(worker, FEEDBACK, exit_proof)  # Can arrive before the plate match.
+    receipt = published[-1]
+    assert receipt[0] == FEEDBACK_ACK and receipt[1]["feedback_id"] == exit_proof["event_id"]
+    assert bay(http)["status"] == "occupied"
+    wire(worker, ARRIVAL, exit_arrival)
+    assert bay(http)["status"] == "free"
+    assert lane_status(http, "exit-p3")["session_id"] == command["session_id"]
+    assert lane_status(http, "exit-p3")["completion_feedback_id"] == exit_proof["event_id"]
+    wire(worker, FEEDBACK, exit_proof)
+    assert published[-1] == receipt
+    history = http.get("/parking/history").json()
+    assert len(history["events"]) == 2
+    session = history["sessions"][0]
+    assert session["entry_passage_basis"] == session["exit_passage_basis"] == "inferred_clearance"
+    assert session["entry_feedback_id"] == entry["event_id"] and session["exit_feedback_id"] == exit_proof["event_id"]
+    assert store.status()["capacity"]["normal"]["available"] == 3
+
+
+def test_physical_fault_or_unqualified_completion_latches_review(physical):
+    http, worker, _, published, _ = physical
+    command = physical_open(worker, published)
+    wire(worker, FEEDBACK, physical_feedback("entry-p3", "entrance", command["command_id"]))
+    for aid, outcome in (("exit-fault", "fault"), ("exit-unqualified", "unqualified")):
+        wire(worker, ARRIVAL, {**arrival(aid, "exit"), "simulation": False})
+        wire(worker, FEEDBACK, physical_feedback(aid, "exit", outcome=outcome))
+        assert lane_status(http, aid)["state"] == "review"
+        wire(worker, FEEDBACK, physical_feedback(aid, "exit"))
+        assert bay(http)["session_id"] == command["session_id"]
+        assert lane_status(http, aid)["completion_feedback_id"] is None
+    assert len(http.get("/parking/history").json()["events"]) == 1
+
+
+def test_physical_mode_rejects_mixing_and_worker_recovery_never_reopens(physical, joint):
+    http, worker, _, published, store = physical
+    sim_http, _, _, _, sim_store = joint
+    assert http.post("/parking/passage/arrivals", json=arrival("sim", "entrance")).status_code == 409
+    assert sim_http.post("/parking/passage/gate/feedback", json=physical_feedback("p3", "exit")).status_code == 409
+    assert http.post("/parking/passage/gate/feedback", json={
+        **physical_feedback("p3", "exit"), "passage_confirmed": True,
+    }).status_code == 422
+    with pytest.raises(ValueError, match="mode mismatch"):
+        PassageParkingStore(store.database, store.storage)
+    with pytest.raises(ValueError, match="mode mismatch"):
+        PassageParkingStore(sim_store.database, sim_store.storage, PHYSICAL_INFERRED_TEST)
+    with pytest.raises(RuntimeError, match="same gate mode"):
+        PassageWorker(http, None, None, {}).preflight()
+    command = physical_open(worker, published)
+    wire(worker, ACK, event("entry-p3", ack_id="p3-ack", command_id=command["command_id"], state="accepted",
+                            simulation=False, reason=None))
+    assert http.post("/parking/passage/worker/recover").json()["review_count"] == 1
+    wire(worker, FEEDBACK, physical_feedback("entry-p3", "entrance", command["command_id"]))
+    assert bay(http)["status"] == "review"
+    assert http.get("/parking/history").json()["sessions"] == []

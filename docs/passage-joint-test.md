@@ -2,6 +2,8 @@
 
 This runner pairs with sensor main [`f92ef31`](https://github.com/ananyaknr/iot-parking-dashboard/tree/f92ef31). Run both on the Windows sensor laptop. Keep the SG90 disconnected and use the isolated sensor dashboard on port 5001, a separate parking API on port 8001, and the `parking/test/v1/...` topics. Parking reservations, passages and photos go to SQLite and disk in the test directory. The shared Supabase instance stays outside this run.
 
+For the separately opted-in physical miniature demonstration, use the [physical inferred-clearance startup and contract](#physical-inferred-clearance-demo). The steps immediately below are for supervised simulation.
+
 ## Windows startup
 
 1. Update the camera checkout to the commit that contains this guide. Keep its existing Python environment, local Gemini key and PaddleOCR models. Verify `ESP32_ENTRANCE_CAPTURE_URL` and `ESP32_EXIT_CAPTURE_URL` in the camera checkout's private `.env` against the current camera IPs. Both must be reachable from Windows. Update the sensor checkout to `f92ef31` or a reviewed compatible version.
@@ -66,3 +68,42 @@ The dashboard can distinguish `reserved` and `review` bays from `occupied`. Only
 | **3. Matched exit** | Present the same vehicle to the exit camera and trigger U2. Verify its local cycle and matching original session ID, with the bay still occupied before passage confirmation. After supervised confirmed feedback, verify the original session becomes `left` and its bay becomes free. The worker sends no exit OPEN. |
 
 Use those three tests for hardware acceptance. The local focused tests in `tests/test_passage_integration.py` exercise the actual API and worker with a fixture JPEG and in-process message delivery. Hardware acceptance requires the live camera and controller evidence above.
+
+## Physical inferred-clearance demo
+
+Use sender [`c049cdf` on `feature/autonomous-gate`](https://github.com/ananyaknr/iot-parking-dashboard/blob/c049cdf/docs/physical-inferred-contract.md). The sender determines whether a cycle is eligible and latches disqualifying conditions. The receiver acts on correlated feedback from that sender. A clean cycle can complete a parking record in the test ledger with provenance `inferred_clearance`. It provides no direct measurement of vehicle passage or servo position.
+
+1. Stop the previous isolated sender, the old bridge, and the simulation worker before reusing ports 5001 and 8001. Use the same Windows laptop, existing model setup and private camera `.env`. Confirm camera connectivity and reviewed P3 hardware readiness using the sender's guide. Running the API or `--check` only checks the service and does not publish MQTT.
+2. In the sensor checkout, its physical demo launcher uses `PARKING_V1_PHYSICAL_INFERRED=yes`, the isolated `sensor_test` bucket and its own sender SQLite ledger. Start it using the sender's instructions after readiness. Keep `PARKING_API_URL=http://127.0.0.1:8001` and `PARKING_SIMULATOR_COMMIT=no` for the sensor dashboard.
+3. Start the receiver API in the camera checkout with a new physical test directory.
+
+```powershell
+$TestRoot = Join-Path $PWD 'data/runtime/physical-inferred-joint'
+New-Item -ItemType Directory -Force $TestRoot | Out-Null
+$KeyFile = Join-Path $TestRoot 'key.txt'
+if (-not (Test-Path $KeyFile)) {
+    ([guid]::NewGuid().ToString('N')) | Set-Content -Encoding ascii -NoNewline $KeyFile
+}
+$env:PARKING_PASSAGE_KEY = (Get-Content $KeyFile -Raw).Trim()
+$env:PARKING_BACKEND = 'local'
+$env:PARKING_PASSAGE_MODE = 'true'
+$env:PARKING_PASSAGE_GATE_MODE = 'physical_inferred_test'
+$env:PARKING_DATABASE_PATH = Join-Path $TestRoot 'parking.sqlite3'
+$env:PARKING_STORAGE_PATH = Join-Path $TestRoot 'photos'
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+```
+
+4. In a second PowerShell terminal in the camera checkout, run the preflight. Start the worker only for the coordinated test. It keeps the existing test topics, command expiry, verified clock and durable feedback receipts.
+
+```powershell
+$SensorRepo = (Resolve-Path '..\iot-parking-dashboard').Path
+$env:PARKING_PASSAGE_KEY = (Get-Content 'data/runtime/physical-inferred-joint/key.txt' -Raw).Trim()
+.\.venv\Scripts\python.exe scripts/run_passage_worker.py --sensor-repo $SensorRepo --gate-mode physical_inferred_test --check
+.\.venv\Scripts\python.exe scripts/run_passage_worker.py --sensor-repo $SensorRepo --gate-mode physical_inferred_test
+```
+
+If the camera environment lacks Paho, install `paho-mqtt==2.1.0` as in the simulation setup. An existing SQLite ledger is bound to its original mode. Use the matching ledger and photo directory on restart, and switch back to the simulation configuration and its original directory to run G3/A3 again.
+
+**Physical-mode API differences.** Status and authenticated health report `gate_mode:"physical_inferred_test"`. Arrivals, command ACKs and feedback must include the Boolean `simulation:false`. The entrance OPEN includes the same flag. Physical ACKs omit `physical_movement`. To advance a visit, feedback must be `state:"completed"`, `simulation:false`, `passage_confirmed:false`, `passage_basis:"inferred_clearance"`, and `reason:null`. It must match the arrival, direction, and entrance command ID, or the null command ID for a local exit. A receipt is unchanged and confirms durable storage. An exact retry returns the same receipt.
+
+Faulty, interrupted or unqualified cycles stay in review, with the entrance bay held or the original exit visit still active. After a worker restart, unresolved reservations or exit matches move to review. Completed history returns `passage_basis` and `feedback_id` on events plus separate `entry_passage_basis`, `exit_passage_basis`, `entry_feedback_id` and `exit_feedback_id` on sessions. Render `inferred_clearance` as **Inferred**. The standalone camera dashboard already does this. The live hardware test remains separate from software verification.

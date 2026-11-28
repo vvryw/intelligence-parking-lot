@@ -156,7 +156,7 @@
     "/parking/passage/health": {
       "get": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Health",
         "operationId": "health_parking_passage_health_get",
@@ -180,7 +180,7 @@
     "/parking/passage/arrivals": {
       "post": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Arrival",
         "operationId": "arrival_parking_passage_arrivals_post",
@@ -226,7 +226,7 @@
     "/parking/passage/arrivals/{arrival_id}": {
       "get": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Get Arrival",
         "operationId": "get_arrival_parking_passage_arrivals__arrival_id__get",
@@ -274,7 +274,7 @@
     "/parking/passage/arrivals/{arrival_id}/prepare": {
       "post": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Prepare",
         "operationId": "prepare_parking_passage_arrivals__arrival_id__prepare_post",
@@ -332,7 +332,7 @@
     "/parking/passage/gate/ack": {
       "post": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Gate Ack",
         "operationId": "gate_ack_parking_passage_gate_ack_post",
@@ -378,7 +378,7 @@
     "/parking/passage/gate/feedback": {
       "post": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Gate Feedback",
         "operationId": "gate_feedback_parking_passage_gate_feedback_post",
@@ -424,7 +424,7 @@
     "/parking/passage/arrivals/{arrival_id}/review": {
       "post": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Review",
         "operationId": "review_parking_passage_arrivals__arrival_id__review_post",
@@ -482,7 +482,7 @@
     "/parking/passage/arrivals/{arrival_id}/cancel": {
       "post": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Cancel",
         "operationId": "cancel_parking_passage_arrivals__arrival_id__cancel_post",
@@ -540,7 +540,7 @@
     "/parking/passage/worker/recover": {
       "post": {
         "tags": [
-          "Passage simulation"
+          "Passage tests"
         ],
         "summary": "Recover",
         "operationId": "recover_parking_passage_worker_recover_post",
@@ -691,6 +691,11 @@
             "pattern": "^[A-Za-z0-9:_-]{1,96}$",
             "title": "Arrival Id"
           },
+          "simulation": {
+            "type": "boolean",
+            "title": "Simulation",
+            "default": true
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -830,6 +835,33 @@
             ],
             "title": "Reason"
           },
+          "passage_basis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "supervised_simulation",
+                  "inferred_clearance"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passage Basis"
+          },
+          "completion_feedback_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9:_-]{1,96}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completion Feedback Id"
+          },
           "replayed": {
             "type": "boolean",
             "title": "Replayed"
@@ -859,6 +891,8 @@
           "ack_state",
           "state",
           "reason",
+          "passage_basis",
+          "completion_feedback_id",
           "replayed",
           "command"
         ],
@@ -942,6 +976,18 @@
               "supercar"
             ],
             "title": "Vehicle Type"
+          },
+          "simulation": {
+            "anyOf": [
+              {
+                "type": "boolean",
+                "const": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulation"
           }
         },
         "additionalProperties": false,
@@ -1031,6 +1077,11 @@
             "type": "string",
             "pattern": "^[A-Za-z0-9:_-]{1,96}$",
             "title": "Arrival Id"
+          },
+          "simulation": {
+            "type": "boolean",
+            "title": "Simulation",
+            "default": true
           },
           "ack_id": {
             "type": "string",
@@ -1208,6 +1259,10 @@
             "pattern": "^[A-Za-z0-9:_-]{1,96}$",
             "title": "Arrival Id"
           },
+          "simulation": {
+            "type": "boolean",
+            "title": "Simulation"
+          },
           "direction": {
             "type": "string",
             "enum": [
@@ -1242,10 +1297,17 @@
             "type": "boolean",
             "title": "Passage Confirmed"
           },
-          "simulation": {
-            "type": "boolean",
-            "const": true,
-            "title": "Simulation"
+          "passage_basis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "inferred_clearance"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passage Basis"
           },
           "reason": {
             "anyOf": [
@@ -1268,11 +1330,11 @@
           "producer_id",
           "occurred_at",
           "arrival_id",
+          "simulation",
           "direction",
           "command_id",
           "state",
           "passage_confirmed",
-          "simulation",
           "reason"
         ],
         "title": "Feedback"

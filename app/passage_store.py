@@ -1,4 +1,4 @@
-"""Passage-aware parking ledger for the isolated MQTT simulation."""
+"""Passage-aware parking ledger for isolated MQTT tests."""
 
 from __future__ import annotations
 
@@ -8,6 +8,9 @@ from uuid import uuid4
 
 from .parking_store import ParkingStore, canonical_plate, space_kind, utc_now
 
+SIMULATION = "simulation"
+PHYSICAL_INFERRED_TEST = "physical_inferred_test"
+
 
 def encode(value: dict) -> str:
     return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
@@ -16,12 +19,29 @@ def encode(value: dict) -> str:
 class PassageParkingStore(ParkingStore):
     passage_mode = True
 
-    def __init__(self, database, storage):
+    def __init__(self, database, storage, gate_mode=SIMULATION):
+        if gate_mode not in {SIMULATION, PHYSICAL_INFERRED_TEST}:
+            raise ValueError("Unknown passage gate mode")
+        self.gate_mode = gate_mode
         super().__init__(database, storage)
         with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
             initialized = db.execute("SELECT 1 FROM sqlite_master WHERE name='passage_arrivals'").fetchone()
             if not initialized and db.execute("SELECT 1 FROM observations LIMIT 1").fetchone():
                 raise ValueError("Passage mode requires a separate test ledger")
+            db.execute("""CREATE TABLE IF NOT EXISTS passage_mode_binding (
+                id INTEGER PRIMARY KEY CHECK(id=1), mode TEXT NOT NULL)""")
+            bound = db.execute("SELECT mode FROM passage_mode_binding WHERE id=1").fetchone()
+            if (bound and bound["mode"] != gate_mode) or (not bound and initialized and not self.simulation):
+                raise ValueError("Passage ledger mode mismatch. Use a separate test ledger.")
+            if not bound:
+                db.execute("INSERT INTO passage_mode_binding VALUES (1,?)", (gate_mode,))
+            if initialized:
+                columns = {row["name"] for row in db.execute("PRAGMA table_info(passage_arrivals)")}
+                if "passage_basis" not in columns:
+                    db.execute("ALTER TABLE passage_arrivals ADD COLUMN passage_basis TEXT")
+                if "completion_feedback_id" not in columns:
+                    db.execute("ALTER TABLE passage_arrivals ADD COLUMN completion_feedback_id TEXT")
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS passage_arrivals (
                     id TEXT PRIMARY KEY, payload TEXT NOT NULL, direction TEXT NOT NULL,
@@ -29,7 +49,8 @@ class PassageParkingStore(ParkingStore):
                     observation_id TEXT UNIQUE REFERENCES observations(id),
                     session_id TEXT, space_id TEXT REFERENCES spaces(id),
                     plate TEXT, vehicle_type TEXT, command TEXT,
-                    ack_state TEXT, state TEXT NOT NULL, reason TEXT
+                    ack_state TEXT, state TEXT NOT NULL, reason TEXT,
+                    passage_basis TEXT, completion_feedback_id TEXT
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS passage_arrival_event
                     ON passage_arrivals(json_extract(payload, '$.event_id'));
@@ -47,6 +68,14 @@ class PassageParkingStore(ParkingStore):
                     ON passage_receipts(arrival_id,kind);
             """)
 
+    @property
+    def simulation(self):
+        return self.gate_mode == SIMULATION
+
+    def require_mode(self, payload):
+        if payload.get("simulation", True) is not self.simulation:
+            raise ValueError("MQTT event mode does not match the passage ledger")
+
     def commit(self, observation_id, request_id):
         raise ValueError("Use the passage workflow. Direct parking commits are disabled in this test instance.")
 
@@ -61,11 +90,12 @@ class PassageParkingStore(ParkingStore):
     def _view(cls, db, arrival_id, *, replayed=False):
         row = cls._row(db, arrival_id)
         fields = ("direction", "decision_id", "observation_id", "session_id", "space_id",
-                  "plate", "vehicle_type", "ack_state", "state", "reason")
+                  "plate", "vehicle_type", "ack_state", "state", "reason", "passage_basis", "completion_feedback_id")
         return {"arrival_id": row["id"], **{field: row[field] for field in fields},
                 "replayed": replayed, "command": None}
 
     def arrival(self, payload):
+        self.require_mode(payload)
         aid, raw = payload["arrival_id"], encode(payload)
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -131,6 +161,8 @@ class PassageParkingStore(ParkingStore):
                             "expires_at": (issued_at + timedelta(seconds=5)).isoformat(),
                             "license_plate": plate, "lcd_plate": lcd_plate, "vehicle_type": vehicle_type,
                         }
+                        if not self.simulation:
+                            command["simulation"] = False
 
             db.execute("""UPDATE passage_arrivals SET observation_id=?, session_id=?, space_id=?,
                 plate=?, vehicle_type=?, command=?, state=?, reason=? WHERE id=?""",
@@ -169,6 +201,7 @@ class PassageParkingStore(ParkingStore):
         return "reserved", None, bay["id"]
 
     def receive(self, kind, payload):
+        self.require_mode(payload)
         aid, event_id, raw = payload["arrival_id"], payload["event_id"], encode(payload)
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -218,14 +251,30 @@ class PassageParkingStore(ParkingStore):
         messages = [(record["kind"], json.loads(record["payload"])) for record in db.execute(
             "SELECT kind,payload FROM passage_receipts WHERE arrival_id=?", (arrival_id,))]
         valid = [(kind, message) for kind, message in messages if self._correlates(row, message, kind)]
-        proof = next((m for kind, m in valid if kind == "feedback" and m["passage_confirmed"]), None)
+        basis = "supervised_simulation" if self.simulation else "inferred_clearance"
+        proof = next((m for kind, m in valid if kind == "feedback" and m["state"] == "completed"
+                      and (m["passage_confirmed"] if self.simulation else
+                           m.get("passage_basis") == basis and not m["passage_confirmed"])), None)
         if row["state"] == "cancelled":
             if proof:
                 db.execute("UPDATE passage_arrivals SET reason='late_confirmation_after_cancellation' WHERE id=?",
                            (arrival_id,))
             return
+        if not self.simulation:
+            uncertain = any(
+                (kind == "ack" and m["state"] in {"unknown", "failed"}) or
+                (kind == "feedback" and (m["state"] in {"hold", "failed"} or
+                 (m["state"] == "completed" and m.get("passage_basis") != basis))) or
+                (proof is not None and kind == "ack" and m["state"] == "rejected")
+                for kind, m in valid
+            )
+            if uncertain or row["state"] == "review":
+                if uncertain and row["state"] != "review":
+                    db.execute("UPDATE passage_arrivals SET state='review',reason='gate_outcome_uncertain' WHERE id=?",
+                               (arrival_id,))
+                return
         if proof:
-            self._complete(db, row, proof["occurred_at"])
+            self._complete(db, row, proof, basis)
         elif row["direction"] == "entrance":
             acknowledgements = {m["state"] for kind, m in valid if kind == "ack"}
             movement = any(kind == "feedback" and m["state"] in {"opening", "completed"} for kind, m in valid)
@@ -240,7 +289,8 @@ class PassageParkingStore(ParkingStore):
                 db.execute("UPDATE passage_arrivals SET ack_state='accepted' WHERE id=?", (arrival_id,))
 
     @staticmethod
-    def _complete(db, row, passed_at):
+    def _complete(db, row, proof, passage_basis):
+        passed_at = proof["occurred_at"]
         session_id = row["session_id"]
         if row["direction"] == "entrance":
             db.execute("INSERT INTO sessions VALUES (?,?,?,?,?,?,?,?,?)", (
@@ -259,7 +309,8 @@ class PassageParkingStore(ParkingStore):
         db.execute("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?)", (
             row["decision_id"], row["observation_id"], f"passage:{row['id']}", row["direction"], row["plate"],
             row["vehicle_type"], row["space_id"], session_id, 1, reason, passed_at))
-        db.execute("UPDATE passage_arrivals SET state='completed',reason=? WHERE id=?", (reason, row["id"]))
+        db.execute("""UPDATE passage_arrivals SET state='completed',reason=?,passage_basis=?,
+            completion_feedback_id=? WHERE id=?""", (reason, passage_basis, proof["event_id"], row["id"]))
 
     def review(self, arrival_id, reason):
         with self.connection() as db:
@@ -274,7 +325,8 @@ class PassageParkingStore(ParkingStore):
         with self.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             changed = db.execute("""UPDATE passage_arrivals SET state='review', reason='worker_restarted'
-                WHERE state='capturing' OR (state='reserved' AND ack_state IS NULL)""").rowcount
+                WHERE state='capturing' OR (state='reserved' AND ack_state IS NULL)
+                   OR (? = 0 AND state IN ('reserved','matched'))""", (self.simulation,)).rowcount
             db.commit()
             return {"review_count": changed}
 
@@ -310,5 +362,32 @@ class PassageParkingStore(ParkingStore):
                 counts = status["capacity"][bay["kind"]]
                 counts["available"] -= 1
                 counts["reserved"] = counts.get("reserved", 0) + 1
-        status.update(workflow="passage", occupancy_source="confirmed_passages_and_entrance_reservations")
+        source = "confirmed_passages" if self.simulation else "inferred_clearance"
+        status.update(workflow="passage", gate_mode=self.gate_mode,
+                      occupancy_source=f"{source}_and_entrance_reservations")
         return status
+
+    def history(self, limit=30):
+        history = super().history(limit)
+        session_ids = [session["id"] for session in history["sessions"]]
+        event_ids = [event["id"] for event in history["events"]]
+        if not session_ids and not event_ids:
+            return history
+        with self.connection() as db:
+            rows = db.execute(f"""SELECT decision_id,session_id,direction,passage_basis,completion_feedback_id
+                FROM passage_arrivals WHERE state='completed'
+                AND (session_id IN ({','.join('?' for _ in session_ids) or 'NULL'})
+                OR decision_id IN ({','.join('?' for _ in event_ids) or 'NULL'}))""", (*session_ids, *event_ids))
+            by_event = {row["decision_id"]: dict(row) for row in rows}
+        by_visit = {(item["session_id"], item["direction"]): item for item in by_event.values()}
+        for session in history["sessions"]:
+            for direction, label in (("entrance", "entry"), ("exit", "exit")):
+                completed = by_visit.get((session["id"], direction))
+                if completed:
+                    session[f"{label}_passage_basis"] = completed["passage_basis"]
+                    session[f"{label}_feedback_id"] = completed["completion_feedback_id"]
+        for event in history["events"]:
+            completed = by_event.get(event["id"])
+            if completed:
+                event.update(passage_basis=completed["passage_basis"], feedback_id=completed["completion_feedback_id"])
+        return history

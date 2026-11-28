@@ -25,6 +25,7 @@ ACK = f"{PREFIX}/gate/ack"
 FEEDBACK = f"{PREFIX}/gate/feedback"
 FEEDBACK_ACK = f"{FEEDBACK}/ack"
 API_PREFIX = "/parking/passage"
+GATE_MODES = ("simulation", "physical_inferred_test")
 logger = logging.getLogger(__name__)
 
 
@@ -50,12 +51,13 @@ def decode(payload):
 
 
 class PassageWorker:
-    def __init__(self, http, publish, clock, lcd_map):
+    def __init__(self, http, publish, clock, lcd_map, gate_mode="simulation"):
         self.http = http
         self.publish = publish
         self.clock = clock
         self.lcd_map = lcd_map
         self.pending = {}
+        self.gate_mode = gate_mode
 
     def post(self, path, payload=None):
         response = self.http.post(API_PREFIX + path, json=payload)
@@ -66,10 +68,11 @@ class PassageWorker:
         status = self.http.get("/parking/status")
         status.raise_for_status()
         data = status.json()
-        if any(data.get(key) != value for key, value in
-               (("storage", "local"), ("gate_mode", "simulation"), ("workflow", "passage"))):
-            raise RuntimeError("Worker requires the isolated passage-mode API")
-        self.http.get(API_PREFIX + "/health").raise_for_status()
+        expected = {"storage": "local", "gate_mode": self.gate_mode, "workflow": "passage"}
+        health = self.http.get(API_PREFIX + "/health")
+        health.raise_for_status()
+        if any(data.get(key) != value for key, value in expected.items()) or health.json() != expected:
+            raise RuntimeError("Worker and isolated passage API must use the same gate mode")
         spec = self.http.get("/openapi.json")
         spec.raise_for_status()
         paths = spec.json()["paths"]
@@ -118,7 +121,9 @@ class PassageWorker:
             return
         result = self.post("/gate/ack" if topic == ACK else "/gate/feedback", data)
         pending = self.pending.get(data["arrival_id"])
-        if pending and pending[0]["command_id"] == data.get("command_id"):
+        fault_without_command = (topic == FEEDBACK and data.get("direction") == "entrance"
+                                 and data.get("command_id") is None and data["state"] in {"hold", "failed"})
+        if pending and (fault_without_command or pending[0]["command_id"] == data.get("command_id")):
             self.pending.pop(data["arrival_id"])
         if result["receipt"]:
             self.publish(FEEDBACK_ACK, json.dumps(result["receipt"], separators=(",", ":")))
@@ -137,6 +142,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sensor-repo", type=Path, required=True)
     parser.add_argument("--port", type=int, default=8001)
+    parser.add_argument("--gate-mode", choices=GATE_MODES, default="simulation")
     parser.add_argument("--lcd-map", type=Path)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
@@ -149,9 +155,9 @@ def main():
         parser.error("LCD mapping must contain string values")
     with httpx.Client(base_url=f"http://127.0.0.1:{args.port}", trust_env=False,
                       headers={"X-Passage-Key": key}, timeout=30) as http:
-        worker = PassageWorker(http, None, None, lcd_map)
+        worker = PassageWorker(http, None, None, lcd_map, args.gate_mode)
         worker.preflight()
-        print("Passage API ready: isolated SQLite, simulation-only", flush=True)
+        print(f"Passage API ready: isolated SQLite, {args.gate_mode}", flush=True)
         if args.check:
             return
 

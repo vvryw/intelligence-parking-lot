@@ -109,6 +109,7 @@ class SupabaseParkingStore:
 
 def create_parking_store():
     backend = os.getenv("PARKING_BACKEND", "local")
+    gate_mode = os.getenv("PARKING_PASSAGE_GATE_MODE", "simulation")
     if os.getenv("PARKING_PASSAGE_MODE", "false").lower() == "true":
         database = os.getenv("PARKING_DATABASE_PATH")
         photos = os.getenv("PARKING_STORAGE_PATH")
@@ -116,7 +117,9 @@ def create_parking_store():
             raise ValueError("Passage mode requires local storage, explicit test paths, and PARKING_PASSAGE_KEY")
         from .passage_store import PassageParkingStore
 
-        return PassageParkingStore(database, photos)
+        return PassageParkingStore(database, photos, gate_mode)
+    if gate_mode != "simulation":
+        raise ValueError("PARKING_PASSAGE_GATE_MODE requires the isolated passage API")
     if backend == "supabase":
         return SupabaseParkingStore()
     if backend == "local":

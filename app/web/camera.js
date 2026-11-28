@@ -30,6 +30,7 @@ let currentObservation;
 let analysisFresh = false;
 let registering = false;
 let registered = false;
+let passageWorkflow = false;
 
 function applyMirror() {
   // Camera frames arrive corrected. One display flip shows the sensor orientation.
@@ -71,7 +72,7 @@ function seconds(value) {
 
 function updateControls() {
   const busy = classifying || reading || registering;
-  element("register-parking").disabled = busy || !analysisFresh || !currentObservation || registered;
+  element("register-parking").disabled = busy || passageWorkflow || !analysisFresh || !currentObservation || registered;
   cameraSelect.disabled = busy;
   trigger.disabled = busy;
   element("test-image").disabled = busy;
@@ -327,7 +328,9 @@ async function analyzeParkingPhoto() {
   status("plate-status", result.eligible ? "success" : "review", plateMessage);
   errorMessage("capture-error", result.vehicle?.error);
   errorMessage("plate-error", result.errors.filter((error) => error !== result.vehicle?.error).join(" · "));
-  status("parking-decision", "", "Photo saved. Check the gate to allocate or release a matching space.");
+  status("parking-decision", "", passageWorkflow
+    ? "Photo saved for review. The gate workflow starts with a sensor arrival."
+    : "Photo saved. Check the gate to allocate or release a matching space.");
   updateControls();
 }
 
@@ -457,6 +460,14 @@ let parkingRefreshVersion = 0;
 let gateCloseTimer;
 
 function renderParkingStatus(state) {
+  passageWorkflow = state.workflow === "passage";
+  element("register-parking").hidden = passageWorkflow;
+  if (passageWorkflow) {
+    element("parking-gate").textContent = state.gate_mode === "physical_inferred_test"
+      ? "Physical demo · passage inferred from clean gate cycles"
+      : "Supervised passage simulation";
+  }
+  updateControls();
   element("vip-available").textContent = state.capacity.vip.available;
   element("normal-available").textContent = state.capacity.normal.available;
   status("parking-cloud", "live", state.storage === "supabase" ? "Supabase connected" : "Local database ready");
@@ -469,7 +480,7 @@ function renderParkingStatus(state) {
     const name = document.createElement("strong");
     name.textContent = bay.id;
     const occupancy = document.createElement("span");
-    occupancy.textContent = { free: "Available", occupied: "Occupied", sensor_occupied: "Sensor occupied", sensor_stale: "Sensor stale", sensor_unknown: "Sensor unknown" }[bay.status] || "Unavailable";
+    occupancy.textContent = { free: "Available", occupied: "Occupied", reserved: "Reserved", review: "Review", sensor_occupied: "Sensor occupied", sensor_stale: "Sensor stale", sensor_unknown: "Sensor unknown" }[bay.status] || "Unavailable";
     const plate = document.createElement("span");
     plate.textContent = bay.plate || (bay.kind === "vip" ? "Sports / supercar" : "Normal car");
     card.append(name, occupancy, plate);
@@ -496,8 +507,8 @@ function renderParkingHistory(history) {
     tableCell(row, visit.plate);
     tableCell(row, `${visit.vehicle_type} · ${visit.space_id || "—"}`);
     tableCell(row, visit.status === "still_in" ? "Still inside" : "Left");
-    tableCell(row, parkingTime(visit.entered_at));
-    tableCell(row, parkingTime(visit.exited_at));
+    tableCell(row, parkingTime(visit.entered_at) + (visit.entry_passage_basis === "inferred_clearance" ? " · Inferred" : ""));
+    tableCell(row, parkingTime(visit.exited_at) + (visit.exit_passage_basis === "inferred_clearance" ? " · Inferred" : ""));
     const photos = tableCell(row, "");
     for (const [label, url] of [["Entry", visit.entrance_photo_url], ["Exit", visit.exit_photo_url]]) {
       if (!url?.startsWith("/parking/media/")) continue;
@@ -515,7 +526,7 @@ function renderParkingHistory(history) {
     tableCell(row, parkingTime(event.created_at));
     tableCell(row, event.camera === "entrance" ? "Entry" : "Exit");
     tableCell(row, event.plate);
-    tableCell(row, `${event.approved ? "Allowed" : "Denied"}: ${decisionMessages[event.reason] || event.reason}`);
+    tableCell(row, `${event.approved ? "Allowed" : "Denied"}: ${decisionMessages[event.reason] || event.reason}${event.passage_basis === "inferred_clearance" ? " · Inferred" : ""}`);
     tableCell(row, event.space_id);
     events.append(row);
   }
@@ -552,7 +563,7 @@ async function refreshParking() {
 }
 
 element("register-parking").addEventListener("click", async () => {
-  if (!analysisFresh || !currentObservation || registering || registered) return;
+  if (passageWorkflow || !analysisFresh || !currentObservation || registering || registered) return;
   registering = true;
   updateControls();
   status("parking-decision", "pending", "Checking the matching bays and recording the decision…");
